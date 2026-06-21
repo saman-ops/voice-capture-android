@@ -19,8 +19,8 @@ android {
         // Keys injected via GitHub Actions secrets (or local local.properties)
         buildConfigField("String", "DEFAULT_ANTHROPIC_KEY",
             "\"${System.getenv("DEFAULT_ANTHROPIC_KEY") ?: ""}\"")
-        buildConfigField("String", "DEFAULT_GEMINI_KEY",
-            "\"${System.getenv("DEFAULT_GEMINI_KEY") ?: ""}\"")
+        buildConfigField("String", "DEFAULT_OPENAI_KEY",
+            "\"${System.getenv("DEFAULT_OPENAI_KEY") ?: ""}\"")
         buildConfigField("String", "AGENT_INTERNAL_TOKEN",
             "\"${System.getenv("AGENT_INTERNAL_TOKEN") ?: ""}\"")
     }
@@ -72,6 +72,10 @@ dependencies {
     // Fragment + Activity KTX
     implementation("androidx.fragment:fragment-ktx:1.8.6")
     implementation("androidx.activity:activity-ktx:1.9.3")
+    // JVM unit tests
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("com.squareup.okhttp3:okhttp:4.12.0")
+    testImplementation("org.json:json:20240303")
     // Instrumented tests
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")

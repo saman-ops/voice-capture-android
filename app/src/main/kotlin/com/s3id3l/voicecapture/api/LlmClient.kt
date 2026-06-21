@@ -1,10 +1,11 @@
 package com.s3id3l.voicecapture.api
 
-import android.util.Base64
 import com.s3id3l.voicecapture.data.PrefsManager
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
@@ -13,7 +14,14 @@ import java.util.concurrent.TimeUnit
 
 data class ProcessingResult(val transcript: String, val formatted: String, val title: String)
 
-class LlmClient(private val prefs: PrefsManager) {
+class LlmClient private constructor(
+    private val anthropicKey: String,
+    private val openaiKey: String,
+) {
+    constructor(prefs: PrefsManager) : this(
+        anthropicKey = prefs.anthropicKey,
+        openaiKey    = prefs.openaiKey,
+    )
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -26,8 +34,7 @@ class LlmClient(private val prefs: PrefsManager) {
     // ── Public entry point ────────────────────────────────────────────────────
 
     fun transcribeAndFormat(audioFile: File, format: String): ProcessingResult {
-        val audioBytes = audioFile.readBytes()
-        val transcript = transcribeWithClaude(audioBytes)
+        val transcript = transcribeWithWhisper(audioFile)
         val formatted  = formatWithClaude(transcript, format)
         val title      = generateTitle(transcript)
         return ProcessingResult(transcript, formatted, title)
@@ -44,7 +51,7 @@ class LlmClient(private val prefs: PrefsManager) {
         }
         val req = Request.Builder()
             .url("https://api.anthropic.com/v1/messages")
-            .addHeader("x-api-key", prefs.anthropicKey)
+            .addHeader("x-api-key", anthropicKey)
             .addHeader("anthropic-version", "2023-06-01")
             .post(body.toString().toRequestBody(JSON))
             .build()
@@ -55,50 +62,30 @@ class LlmClient(private val prefs: PrefsManager) {
         transcript.split(" ").filter { it.length > 2 }.take(5).joinToString(", ").take(60).ifEmpty { "Aufnahme" }
     }
 
-    // ── Claude transcription (audio → text) ───────────────────────────────────
+    // ── Whisper transcription (audio file → text) ─────────────────────────────
 
-    private fun transcribeWithClaude(audioBytes: ByteArray): String {
-        val audioBase64 = Base64.encodeToString(audioBytes, Base64.NO_WRAP)
+    private fun transcribeWithWhisper(audioFile: File): String {
+        if (openaiKey.isEmpty()) throw RuntimeException("OpenAI API Key nicht konfiguriert (Einstellungen)")
 
-        val body = JSONObject().apply {
-            put("model", "claude-haiku-4-5-20251001")
-            put("max_tokens", 4096)
-            put("messages", JSONArray().put(JSONObject().apply {
-                put("role", "user")
-                put("content", JSONArray().apply {
-                    put(JSONObject().apply {
-                        put("type", "audio")
-                        put("source", JSONObject().apply {
-                            put("type", "base64")
-                            put("media_type", "audio/mp4")
-                            put("data", audioBase64)
-                        })
-                    })
-                    put(JSONObject().apply {
-                        put("type", "text")
-                        put("text", "Transkribiere diese Sprachaufnahme auf Deutsch. Gib ausschließlich den transkribierten Text zurück – keine Kommentare, keine Einleitung.")
-                    })
-                })
-            }))
-        }
+        val requestBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("file", audioFile.name,
+                audioFile.asRequestBody("audio/mp4".toMediaType()))
+            .addFormDataPart("model", "whisper-1")
+            .addFormDataPart("language", "de")
+            .addFormDataPart("response_format", "text")
+            .build()
 
         val req = Request.Builder()
-            .url("https://api.anthropic.com/v1/messages")
-            .addHeader("x-api-key", prefs.anthropicKey)
-            .addHeader("anthropic-version", "2023-06-01")
-            .addHeader("anthropic-beta", "audio-1")
-            .post(body.toString().toRequestBody(JSON))
+            .url("https://api.openai.com/v1/audio/transcriptions")
+            .addHeader("Authorization", "Bearer $openaiKey")
+            .post(requestBody)
             .build()
 
         val resp = http.newCall(req).execute()
-        val respBody = resp.body?.string() ?: throw RuntimeException("Claude: leere Antwort")
-        if (!resp.isSuccessful) throw RuntimeException("Claude STT Fehler ${resp.code}: $respBody")
-
-        val json = JSONObject(respBody)
-        return json.getJSONArray("content")
-            .getJSONObject(0)
-            .getString("text")
-            .trim()
+        val respBody = resp.body?.string() ?: throw RuntimeException("Whisper: leere Antwort")
+        if (!resp.isSuccessful) throw RuntimeException("Whisper Fehler ${resp.code}: $respBody")
+        return respBody.trim()
     }
 
     // ── Claude formatting (text → formatted text) ─────────────────────────────
@@ -118,7 +105,7 @@ class LlmClient(private val prefs: PrefsManager) {
 
         val req = Request.Builder()
             .url("https://api.anthropic.com/v1/messages")
-            .addHeader("x-api-key", prefs.anthropicKey)
+            .addHeader("x-api-key", anthropicKey)
             .addHeader("anthropic-version", "2023-06-01")
             .post(body.toString().toRequestBody(JSON))
             .build()
@@ -170,7 +157,7 @@ Hilf beim Verfeinern, Umformulieren oder Ergänzen."""
 
         val req = okhttp3.Request.Builder()
             .url("https://api.anthropic.com/v1/messages")
-            .addHeader("x-api-key", prefs.anthropicKey)
+            .addHeader("x-api-key", anthropicKey)
             .addHeader("anthropic-version", "2023-06-01")
             .post(body.toString().toRequestBody(JSON))
             .build()
@@ -214,7 +201,7 @@ Beantworte Fragen zu allen Notizen. Vergleiche, synthetisiere und zitiere spezif
 
         val req = okhttp3.Request.Builder()
             .url("https://api.anthropic.com/v1/messages")
-            .addHeader("x-api-key", prefs.anthropicKey)
+            .addHeader("x-api-key", anthropicKey)
             .addHeader("anthropic-version", "2023-06-01")
             .post(body.toString().toRequestBody(JSON))
             .build()

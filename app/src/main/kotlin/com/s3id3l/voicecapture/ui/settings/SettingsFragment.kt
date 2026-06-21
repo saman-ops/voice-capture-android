@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
 import androidx.fragment.app.Fragment
 import com.google.android.material.snackbar.Snackbar
 import com.s3id3l.voicecapture.data.PrefsManager
@@ -24,14 +23,6 @@ class SettingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         prefs = PrefsManager(requireContext())
 
-        val llms = arrayOf("Claude (Anthropic)", "Gemini (Google)")
-        b.spinnerLlm.adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            llms
-        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-        b.spinnerLlm.setSelection(if (prefs.preferredLlm == "claude") 0 else 1)
-
         loadSettings()
 
         b.btnSave.setOnClickListener { saveSettings() }
@@ -39,7 +30,7 @@ class SettingsFragment : Fragment() {
 
     private fun loadSettings() {
         b.etAnthropicKey.setText(prefs.anthropicKey)
-        b.etGeminiKey.setText(prefs.geminiKey)
+        b.etOpenaiKey.setText(prefs.openaiKey)
         b.etCapacitiesEmail.setText(prefs.capacitiesEmail)
         b.etCustomEmail.setText(prefs.customEmail)
         b.etWebhookUrl.setText(prefs.webhookUrl)
@@ -51,7 +42,7 @@ class SettingsFragment : Fragment() {
 
     private fun saveSettings() {
         prefs.anthropicKey    = b.etAnthropicKey.text.toString().trim()
-        prefs.geminiKey       = b.etGeminiKey.text.toString().trim()
+        prefs.openaiKey       = b.etOpenaiKey.text.toString().trim()
         prefs.capacitiesEmail = b.etCapacitiesEmail.text.toString().trim()
         prefs.customEmail     = b.etCustomEmail.text.toString().trim()
         prefs.webhookUrl      = b.etWebhookUrl.text.toString().trim()
@@ -59,7 +50,6 @@ class SettingsFragment : Fragment() {
         prefs.smtpPort        = b.etSmtpPort.text.toString().toIntOrNull() ?: 587
         prefs.smtpUser        = b.etSmtpUser.text.toString().trim()
         prefs.smtpPass        = b.etSmtpPass.text.toString()
-        prefs.preferredLlm    = if (b.spinnerLlm.selectedItemPosition == 0) "claude" else "gemini"
         Snackbar.make(b.root, "✅ Einstellungen gespeichert", Snackbar.LENGTH_SHORT).show()
     }
 
