@@ -23,7 +23,6 @@
         android:background="@color/surface"
         app:itemIconTint="@color/text_secondary"
         app:itemTextColor="@color/text_secondary"
-        app:itemActiveIndicatorColor="#1C6366F1"
         app:menu="@menu/bottom_nav_menu" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
