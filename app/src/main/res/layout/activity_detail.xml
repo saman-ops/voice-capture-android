@@ -4,18 +4,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#111827">
+    android:background="@color/bg_dark">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#1F2937">
+        android:background="@color/bg_dark"
+        app:elevation="0dp">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:titleTextColor="#F9FAFB" />
+            app:titleTextColor="@color/text_primary"
+            android:background="@color/bg_dark" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -23,86 +25,93 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
-        android:padding="16dp"
         android:clipToPadding="false"
-        android:paddingBottom="24dp">
+        android:paddingBottom="32dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="8dp">
 
+            <!-- Editable title -->
             <EditText
                 android:id="@+id/title_editable"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#F9FAFB"
-                android:textSize="18sp"
+                android:textColor="@color/text_primary"
+                android:textSize="20sp"
                 android:fontFamily="sans-serif-bold"
                 android:background="@null"
                 android:imeOptions="actionDone"
                 android:inputType="textCapSentences"
                 android:hint="Aufnahme"
-                android:textColorHint="#4B5563"
-                android:layout_marginBottom="4dp" />
+                android:textColorHint="@color/text_muted"
+                android:layout_marginBottom="8dp" />
 
+            <!-- Metadata row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
+                android:gravity="center_vertical"
+                android:layout_marginBottom="20dp">
 
                 <TextView
                     android:id="@+id/tv_date"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#6B7280"
+                    android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=" · "
-                    android:textColor="#4B5563"
+                    android:text="  ·  "
+                    android:textColor="@color/border"
                     android:textSize="12sp" />
 
                 <TextView
                     android:id="@+id/tv_duration"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#6B7280"
+                    android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=" · "
-                    android:textColor="#4B5563"
+                    android:text="  ·  "
+                    android:textColor="@color/border"
                     android:textSize="12sp" />
 
                 <TextView
                     android:id="@+id/tv_status"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#6B7280"
+                    android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
 
             </LinearLayout>
 
+            <!-- Output section header -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="AUSGABE"
-                android:textColor="#6B7280"
+                android:textColor="@color/text_muted"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-medium"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="10dp" />
 
+            <!-- Format chips -->
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:scrollbars="none"
-                android:layout_marginBottom="8dp">
+                android:layout_marginBottom="10dp">
 
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/format_chips"
@@ -112,33 +121,37 @@
 
             </HorizontalScrollView>
 
+            <!-- Reformat progress bar -->
             <ProgressBar
                 android:id="@+id/progress_reformat"
                 android:layout_width="match_parent"
-                android:layout_height="4dp"
+                android:layout_height="3dp"
                 android:indeterminate="true"
-                android:indeterminateTint="#EF4444"
+                android:indeterminateTint="@color/accent_voice"
                 android:visibility="gone"
                 style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                android:layout_marginBottom="4dp" />
+                android:layout_marginBottom="6dp" />
 
+            <!-- Editable output text -->
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp">
+                android:layout_marginBottom="14dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_output"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:minLines="4"
+                    android:minLines="5"
                     android:gravity="top"
                     android:inputType="textMultiLine|textCapSentences"
-                    android:textColor="#F9FAFB" />
+                    android:textColor="@color/text_primary"
+                    android:lineSpacingMultiplier="1.4" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Action buttons row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -148,48 +161,53 @@
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btn_copy"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
+                    android:layout_height="44dp"
                     android:layout_weight="1"
-                    android:text="📋"
-                    android:textColor="#F9FAFB"
+                    android:text="Kopieren"
+                    android:textColor="@color/text_secondary"
                     android:background="@drawable/chip_bg"
-                    android:textSize="14sp"
-                    android:layout_marginEnd="4dp" />
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginEnd="6dp" />
 
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btn_share"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
+                    android:layout_height="44dp"
                     android:layout_weight="1"
-                    android:text="↗"
-                    android:textColor="#F9FAFB"
+                    android:text="Teilen"
+                    android:textColor="@color/text_secondary"
                     android:background="@drawable/chip_bg"
-                    android:textSize="14sp"
-                    android:layout_marginEnd="4dp" />
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginEnd="6dp" />
 
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btn_capacities"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
+                    android:layout_height="44dp"
                     android:layout_weight="1"
-                    android:text="Cap"
-                    android:textColor="#FFCC80"
+                    android:text="Capacities"
+                    android:textColor="@color/accent_amber"
                     android:background="@drawable/chip_bg"
                     android:textSize="11sp"
-                    android:layout_marginEnd="4dp" />
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginEnd="6dp" />
 
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btn_claude"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
+                    android:layout_height="44dp"
                     android:layout_weight="1"
-                    android:text="🤖"
-                    android:textColor="#80CBC4"
+                    android:text="Claude"
+                    android:textColor="@color/accent_teal"
                     android:background="@drawable/chip_bg"
-                    android:textSize="14sp" />
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium" />
 
             </LinearLayout>
 
+            <!-- Transcript section header (collapsible) -->
             <LinearLayout
                 android:id="@+id/transcript_header"
                 android:layout_width="match_parent"
@@ -197,14 +215,15 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:layout_marginBottom="8dp"
-                android:padding="4dp">
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="TRANSKRIPT"
-                    android:textColor="#6B7280"
+                    android:textColor="@color/text_muted"
                     android:textSize="11sp"
                     android:fontFamily="sans-serif-medium" />
 
@@ -213,30 +232,34 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="▼"
-                    android:textColor="#6B7280"
+                    android:textColor="@color/text_muted"
                     android:textSize="12sp" />
 
             </LinearLayout>
 
+            <!-- Transcript text (collapsed by default) -->
             <TextView
                 android:id="@+id/tv_transcript"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#9CA3AF"
+                android:textColor="@color/text_secondary"
                 android:textSize="13sp"
+                android:lineSpacingMultiplier="1.5"
                 android:background="@drawable/input_bg"
-                android:padding="12dp"
+                android:padding="14dp"
                 android:layout_marginBottom="24dp"
                 android:visibility="gone" />
 
+            <!-- Chat CTA -->
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btn_chat"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
-                android:text="💬 Mit KI besprechen"
-                android:background="@drawable/chip_bg"
-                android:textColor="#F9FAFB"
+                android:text="Mit KI besprechen"
+                android:background="@drawable/btn_primary_bg"
+                android:textColor="@color/text_primary"
                 android:textSize="15sp"
+                android:fontFamily="sans-serif-medium"
                 android:layout_marginBottom="16dp" />
 
         </LinearLayout>

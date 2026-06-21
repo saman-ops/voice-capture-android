@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.VoiceCapture" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-        <item name="colorPrimary">@color/accent_red</item>
+    <style name="Theme.VoiceCapture" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/accent_voice</item>
         <item name="colorPrimaryVariant">@color/surface</item>
         <item name="colorOnPrimary">@color/text_primary</item>
+        <item name="colorSecondary">@color/accent_voice_light</item>
         <item name="colorSurface">@color/surface</item>
         <item name="android:colorBackground">@color/bg_dark</item>
         <item name="android:windowBackground">@color/bg_dark</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
-        <item name="colorControlHighlight">#33EF4444</item>
+        <item name="colorControlHighlight">#336366F1</item>
+        <item name="chipStyle">@style/Widget.MaterialComponents.Chip.Choice</item>
     </style>
 
     <style name="Theme.VoiceCapture.Recording" parent="Theme.VoiceCapture">

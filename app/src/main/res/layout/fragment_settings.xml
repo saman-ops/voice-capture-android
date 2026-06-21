@@ -2,48 +2,54 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#111827">
+    android:background="@color/bg_dark">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="32dp">
 
+        <!-- Header -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Einstellungen"
-            android:textSize="20sp"
-            android:textColor="#F9FAFB"
+            android:textSize="26sp"
+            android:textColor="@color/text_primary"
             android:fontFamily="sans-serif-black"
-            android:layout_marginBottom="16dp" />
+            android:paddingTop="28dp"
+            android:paddingBottom="24dp" />
 
+        <!-- Section: AI Model -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="KI-Modell für Formatierung"
-            android:textColor="#D1D5DB"
-            android:textSize="12sp"
-            android:layout_marginBottom="4dp" />
+            android:text="KI-MODELL"
+            android:textColor="@color/text_muted"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="8dp" />
 
         <Spinner
             android:id="@+id/spinner_llm"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:background="@drawable/input_bg"
-            android:layout_marginBottom="16dp"
-            android:popupBackground="#1F2937" />
+            android:layout_marginBottom="24dp"
+            android:popupBackground="@color/surface" />
 
+        <!-- Section: API Keys -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="API KEYS"
-            android:textColor="#6B7280"
+            android:textColor="@color/text_muted"
             android:textSize="11sp"
             android:fontFamily="sans-serif-medium"
-            android:layout_marginBottom="8dp"
-            android:layout_marginTop="8dp" />
+            android:layout_marginBottom="10dp" />
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -56,7 +62,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPassword"
-                android:textColor="#F9FAFB" />
+                android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -64,24 +70,24 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Gemini API Key"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="24dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_gemini_key"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPassword"
-                android:textColor="#F9FAFB" />
+                android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Section: Targets -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="ZIELE"
-            android:textColor="#6B7280"
+            android:textColor="@color/text_muted"
             android:textSize="11sp"
             android:fontFamily="sans-serif-medium"
-            android:layout_marginBottom="8dp"
-            android:layout_marginTop="8dp" />
+            android:layout_marginBottom="10dp" />
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -94,7 +100,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textEmailAddress"
-                android:textColor="#F9FAFB" />
+                android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -108,7 +114,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textEmailAddress"
-                android:textColor="#F9FAFB" />
+                android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -116,32 +122,32 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Webhook URL (optional)"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="24dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_webhook_url"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textUri"
-                android:textColor="#F9FAFB" />
+                android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Section: SMTP -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="SMTP (für E-Mail-Versand)"
-            android:textColor="#6B7280"
+            android:text="SMTP (E-MAIL-VERSAND)"
+            android:textColor="@color/text_muted"
             android:textSize="11sp"
             android:fontFamily="sans-serif-medium"
-            android:layout_marginBottom="4dp"
-            android:layout_marginTop="8dp" />
+            android:layout_marginBottom="6dp" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Gmail: App-Passwort verwenden"
-            android:textColor="#4B5563"
+            android:textColor="@color/text_muted"
             android:textSize="11sp"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="10dp" />
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -153,7 +159,7 @@
                 android:id="@+id/et_smtp_host"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#F9FAFB" />
+                android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -167,7 +173,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="number"
-                android:textColor="#F9FAFB" />
+                android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -181,7 +187,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textEmailAddress"
-                android:textColor="#F9FAFB" />
+                android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -189,15 +195,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="SMTP Passwort / App-Passwort"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="28dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_smtp_pass"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPassword"
-                android:textColor="#F9FAFB" />
+                android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Save button -->
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_save"
             android:layout_width="match_parent"
@@ -205,9 +212,8 @@
             android:text="Einstellungen speichern"
             android:textSize="15sp"
             android:fontFamily="sans-serif-medium"
-            android:background="@drawable/btn_record_bg"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="32dp" />
+            android:background="@drawable/btn_primary_bg"
+            android:textColor="@color/text_primary" />
 
     </LinearLayout>
 </ScrollView>

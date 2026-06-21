@@ -1,90 +1,136 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#111827">
+    android:background="@color/bg_dark">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:orientation="vertical">
 
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="28dp"
+            android:paddingBottom="4dp"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="VoiceCapture"
+                    android:textSize="26sp"
+                    android:textColor="@color/text_primary"
+                    android:fontFamily="sans-serif-black" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Aufnahmen und Transkripte"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="2dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Section label -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="🎤 VoiceCapture"
-            android:textSize="22sp"
-            android:textColor="#F9FAFB"
-            android:fontFamily="sans-serif-black"
-            android:layout_marginBottom="4dp" />
+            android:text="ZULETZT"
+            android:textSize="11sp"
+            android:textColor="@color/text_muted"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="20dp"
+            android:paddingBottom="8dp" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Letzte Aufnahmen"
-            android:textSize="13sp"
-            android:textColor="#6B7280"
-            android:layout_marginBottom="16dp" />
-
+        <!-- Empty state -->
         <LinearLayout
             android:id="@+id/empty_state"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center"
-            android:paddingTop="60dp"
+            android:paddingTop="80dp"
+            android:paddingBottom="80dp"
+            android:paddingStart="32dp"
+            android:paddingEnd="32dp"
             android:visibility="gone">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Noch keine Aufnahmen"
-                android:textColor="#6B7280"
-                android:textSize="16sp" />
+                android:textColor="@color/text_secondary"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Tippe auf das Mikrofon um zu starten"
-                android:textColor="#4B5563"
+                android:text="Tippe auf das Mikrofon-Symbol unten rechts"
+                android:textColor="@color/text_muted"
                 android:textSize="13sp"
-                android:layout_marginTop="4dp" />
+                android:layout_marginTop="6dp"
+                android:gravity="center" />
 
         </LinearLayout>
 
+        <!-- Recordings list -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_recent"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:clipToPadding="false"
-            android:paddingBottom="80dp" />
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="96dp" />
 
     </LinearLayout>
 
+    <!-- Suggestions floating button -->
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btn_suggestions"
         android:layout_width="wrap_content"
         android:layout_height="40dp"
-        android:text="💡"
-        android:textSize="18sp"
-        android:textColor="#FFFFFF"
+        android:text="Vorschlaege"
+        android:textSize="12sp"
+        android:textColor="@color/accent_voice_light"
         android:background="@drawable/chip_bg"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:layout_gravity="bottom|end"
-        android:layout_marginBottom="76dp"
-        android:layout_marginEnd="88dp" />
+        android:layout_marginBottom="92dp"
+        android:layout_marginEnd="100dp" />
 
+    <!-- Record FAB -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_record"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginBottom="72dp"
-        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="84dp"
+        android:layout_marginEnd="20dp"
         android:src="@drawable/ic_mic"
-        app:backgroundTint="#EF4444"
-        app:tint="#FFFFFF"
-        xmlns:app="http://schemas.android.com/apk/res-auto" />
+        app:backgroundTint="@color/accent_voice"
+        app:tint="@color/text_primary"
+        app:fabSize="normal" />
 
 </FrameLayout>

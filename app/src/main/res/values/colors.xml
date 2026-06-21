@@ -1,11 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_dark">#111827</color>
-    <color name="surface">#1F2937</color>
+    <!-- Backgrounds -->
+    <color name="bg_dark">#090E1A</color>
+    <color name="surface">#111827</color>
+    <color name="surface_elevated">#1C2333</color>
+
+    <!-- Accent – Indigo Voice Theme -->
+    <color name="accent_voice">#6366F1</color>
+    <color name="accent_voice_light">#818CF8</color>
     <color name="accent_red">#EF4444</color>
-    <color name="accent_amber">#FFCC80</color>
-    <color name="accent_teal">#80CBC4</color>
-    <color name="text_primary">#F9FAFB</color>
-    <color name="text_secondary">#9CA3AF</color>
-    <color name="border">#374151</color>
+    <color name="accent_green">#10B981</color>
+    <color name="accent_amber">#F59E0B</color>
+    <color name="accent_teal">#06B6D4</color>
+
+    <!-- Text -->
+    <color name="text_primary">#F1F5F9</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="text_muted">#4B5563</color>
+
+    <!-- Borders -->
+    <color name="border">#2D3748</color>
+    <color name="border_accent">#4F46E5</color>
 </resources>
