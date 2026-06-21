@@ -2,8 +2,8 @@ package com.s3id3l.voicecapture
 
 import android.os.Bundle
 import android.widget.ArrayAdapter
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.snackbar.Snackbar
 import com.s3id3l.voicecapture.data.PrefsManager
 import com.s3id3l.voicecapture.databinding.ActivityMainBinding
 
@@ -54,6 +54,6 @@ class MainActivity : AppCompatActivity() {
         prefs.smtpPass        = binding.etSmtpPass.text.toString()
         prefs.preferredLlm    = if (binding.spinnerLlm.selectedItemPosition == 0) "claude" else "gemini"
 
-        Toast.makeText(this, "✅ Einstellungen gespeichert", Toast.LENGTH_SHORT).show()
+        Snackbar.make(binding.root, "✅ Einstellungen gespeichert", Snackbar.LENGTH_SHORT).show()
     }
 }

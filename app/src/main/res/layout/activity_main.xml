@@ -147,7 +147,7 @@
                 android:inputType="textPassword" android:textColor="#F9FAFB" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_save"
             android:layout_width="match_parent"
             android:layout_height="52dp"
