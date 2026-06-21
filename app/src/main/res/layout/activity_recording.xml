@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#111827">
+
+    <!-- Format chip -->
+    <TextView
+        android:id="@+id/tv_format"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:gravity="center"
+        android:textSize="13sp"
+        android:textColor="#FFCC80"
+        android:fontFamily="sans-serif-medium"
+        android:background="@drawable/chip_bg"
+        android:text="Bullets"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tv_target"
+        android:layout_margin="16dp"
+        android:layout_marginEnd="8dp" />
+
+    <!-- Target chip -->
+    <TextView
+        android:id="@+id/tv_target"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:gravity="center"
+        android:textSize="13sp"
+        android:textColor="#80CBC4"
+        android:fontFamily="sans-serif-medium"
+        android:background="@drawable/chip_bg"
+        android:text="→ Capacities"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@id/tv_format"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="16dp"
+        android:layout_marginStart="8dp" />
+
+    <!-- Mic icon -->
+    <ImageView
+        android:id="@+id/iv_mic"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ic_mic"
+        android:tint="#EF4444"
+        app:layout_constraintTop_toBottomOf="@id/tv_format"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/chronometer"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Timer -->
+    <Chronometer
+        android:id="@+id/chronometer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="36sp"
+        android:textColor="#FFFFFF"
+        android:fontFamily="sans-serif-light"
+        app:layout_constraintTop_toBottomOf="@id/iv_mic"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/tv_status" />
+
+    <!-- Status label -->
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:textColor="#9CA3AF"
+        android:text="Bereit"
+        app:layout_constraintTop_toBottomOf="@id/chronometer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btn_record"
+        android:layout_margin="16dp" />
+
+    <!-- Record / Stop button -->
+    <Button
+        android:id="@+id/btn_record"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:text="🎤  AUFNEHMEN"
+        android:textSize="16sp"
+        android:fontFamily="sans-serif-black"
+        android:background="@drawable/btn_record_bg"
+        android:textColor="#FFFFFF"
+        app:layout_constraintBottom_toTopOf="@id/btn_cancel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Cancel button -->
+    <Button
+        android:id="@+id/btn_cancel"
+        android:layout_width="0dp"
+        android:layout_height="44dp"
+        android:text="Abbrechen"
+        android:textSize="14sp"
+        android:textColor="#9CA3AF"
+        style="@style/Widget.Material3.Button.TextButton"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="24dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
