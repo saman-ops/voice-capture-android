@@ -30,7 +30,7 @@ class SettingsFragment : Fragment() {
 
     private fun loadSettings() {
         b.etAnthropicKey.setText(prefs.anthropicKey)
-        b.etOpenaiKey.setText(prefs.openaiKey)
+        b.etGeminiKey.setText(prefs.geminiKey)
         b.etCapacitiesEmail.setText(prefs.capacitiesEmail)
         b.etCustomEmail.setText(prefs.customEmail)
         b.etWebhookUrl.setText(prefs.webhookUrl)
@@ -42,7 +42,7 @@ class SettingsFragment : Fragment() {
 
     private fun saveSettings() {
         prefs.anthropicKey    = b.etAnthropicKey.text.toString().trim()
-        prefs.openaiKey       = b.etOpenaiKey.text.toString().trim()
+        prefs.geminiKey       = b.etGeminiKey.text.toString().trim()
         prefs.capacitiesEmail = b.etCapacitiesEmail.text.toString().trim()
         prefs.customEmail     = b.etCustomEmail.text.toString().trim()
         prefs.webhookUrl      = b.etWebhookUrl.text.toString().trim()

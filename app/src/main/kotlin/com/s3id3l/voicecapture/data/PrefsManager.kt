@@ -15,9 +15,9 @@ class PrefsManager(context: Context) {
         get() = prefs.getString("anthropic_key", DEFAULT_ANTHROPIC_KEY) ?: DEFAULT_ANTHROPIC_KEY
         set(v) = prefs.edit().putString("anthropic_key", v).apply()
 
-    var openaiKey: String
-        get() = prefs.getString("openai_key", DEFAULT_OPENAI_KEY) ?: DEFAULT_OPENAI_KEY
-        set(v) = prefs.edit().putString("openai_key", v).apply()
+    var geminiKey: String
+        get() = prefs.getString("gemini_key", DEFAULT_GEMINI_KEY) ?: DEFAULT_GEMINI_KEY
+        set(v) = prefs.edit().putString("gemini_key", v).apply()
 
     // ── Format & Target (used by widget and recording screen) ─────────────────
 
@@ -62,7 +62,7 @@ class PrefsManager(context: Context) {
     companion object {
         // Injected at build time via BuildConfig (set as GitHub Actions secrets)
         const val DEFAULT_ANTHROPIC_KEY = BuildConfig.DEFAULT_ANTHROPIC_KEY
-        const val DEFAULT_OPENAI_KEY    = BuildConfig.DEFAULT_OPENAI_KEY
+        const val DEFAULT_GEMINI_KEY    = BuildConfig.DEFAULT_GEMINI_KEY
 
         // Format constants
         const val FORMAT_TASKS   = "tasks"

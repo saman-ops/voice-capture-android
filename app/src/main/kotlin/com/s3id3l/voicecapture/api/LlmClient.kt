@@ -1,26 +1,28 @@
 package com.s3id3l.voicecapture.api
 
+import android.util.Base64
 import com.s3id3l.voicecapture.data.PrefsManager
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 
 data class ProcessingResult(val transcript: String, val formatted: String, val title: String)
 
 class LlmClient private constructor(
     private val anthropicKey: String,
-    private val openaiKey: String,
+    private val geminiKey: String,
 ) {
     constructor(prefs: PrefsManager) : this(
         anthropicKey = prefs.anthropicKey,
-        openaiKey    = prefs.openaiKey,
+        geminiKey    = prefs.geminiKey,
     )
 
     private val http = OkHttpClient.Builder()
@@ -34,7 +36,7 @@ class LlmClient private constructor(
     // ── Public entry point ────────────────────────────────────────────────────
 
     fun transcribeAndFormat(audioFile: File, format: String): ProcessingResult {
-        val transcript = transcribeWithWhisper(audioFile)
+        val transcript = transcribeWithGemini(audioFile.readBytes())
         val formatted  = formatWithClaude(transcript, format)
         val title      = generateTitle(transcript)
         return ProcessingResult(transcript, formatted, title)
@@ -62,30 +64,61 @@ class LlmClient private constructor(
         transcript.split(" ").filter { it.length > 2 }.take(5).joinToString(", ").take(60).ifEmpty { "Aufnahme" }
     }
 
-    // ── Whisper transcription (audio file → text) ─────────────────────────────
+    // ── Gemini transcription (audio bytes → text) ────────────────────────────
 
-    private fun transcribeWithWhisper(audioFile: File): String {
-        if (openaiKey.isEmpty()) throw RuntimeException("OpenAI API Key nicht konfiguriert (Einstellungen)")
+    private fun transcribeWithGemini(audioBytes: ByteArray): String {
+        val audioBase64 = Base64.encodeToString(audioBytes, Base64.NO_WRAP)
 
-        val requestBody = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart("file", audioFile.name,
-                audioFile.asRequestBody("audio/mp4".toMediaType()))
-            .addFormDataPart("model", "whisper-1")
-            .addFormDataPart("language", "de")
-            .addFormDataPart("response_format", "text")
-            .build()
+        val body = JSONObject().apply {
+            put("contents", JSONArray().put(JSONObject().apply {
+                put("parts", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("inline_data", JSONObject().apply {
+                            put("mime_type", "audio/mp4")
+                            put("data", audioBase64)
+                        })
+                    })
+                    put(JSONObject().apply {
+                        put("text", "Transkribiere diese Sprachaufnahme auf Deutsch. Gib ausschließlich den transkribierten Text zurück – keine Kommentare, keine Einleitung.")
+                    })
+                })
+            }))
+            put("generationConfig", JSONObject().apply {
+                put("temperature", 0.0)
+                put("maxOutputTokens", 4096)
+            })
+        }
 
         val req = Request.Builder()
-            .url("https://api.openai.com/v1/audio/transcriptions")
-            .addHeader("Authorization", "Bearer $openaiKey")
-            .post(requestBody)
+            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$geminiKey")
+            .post(body.toString().toRequestBody(JSON))
             .build()
 
-        val resp = http.newCall(req).execute()
-        val respBody = resp.body?.string() ?: throw RuntimeException("Whisper: leere Antwort")
-        if (!resp.isSuccessful) throw RuntimeException("Whisper Fehler ${resp.code}: $respBody")
-        return respBody.trim()
+        try {
+            val resp = http.newCall(req).execute()
+            val respBody = resp.body?.string() ?: throw RuntimeException("Gemini: leere Antwort")
+            when (resp.code) {
+                401, 403 -> throw RuntimeException("Gemini API-Key ungültig – bitte in Einstellungen prüfen (${resp.code})")
+                429      -> throw RuntimeException("Gemini Kontingent erschöpft – bitte kurz warten und erneut versuchen")
+                in 500..599 -> throw RuntimeException("Gemini Server-Fehler (${resp.code}) – bitte erneut versuchen")
+            }
+            if (!resp.isSuccessful) throw RuntimeException("Gemini Fehler ${resp.code}")
+
+            val json = JSONObject(respBody)
+            return json.getJSONArray("candidates")
+                .getJSONObject(0)
+                .getJSONObject("content")
+                .getJSONArray("parts")
+                .getJSONObject(0)
+                .getString("text")
+                .trim()
+        } catch (e: ConnectException) {
+            throw RuntimeException("Netzwerkfehler – keine Verbindung zu Gemini. Bitte erneut versuchen.")
+        } catch (e: SocketTimeoutException) {
+            throw RuntimeException("Netzwerk-Timeout – bitte erneut versuchen.")
+        } catch (e: IOException) {
+            throw RuntimeException("Netzwerkfehler: ${e.message}")
+        }
     }
 
     // ── Claude formatting (text → formatted text) ─────────────────────────────

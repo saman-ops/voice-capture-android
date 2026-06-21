@@ -19,8 +19,8 @@ android {
         // Keys injected via GitHub Actions secrets (or local local.properties)
         buildConfigField("String", "DEFAULT_ANTHROPIC_KEY",
             "\"${System.getenv("DEFAULT_ANTHROPIC_KEY") ?: ""}\"")
-        buildConfigField("String", "DEFAULT_OPENAI_KEY",
-            "\"${System.getenv("DEFAULT_OPENAI_KEY") ?: ""}\"")
+        buildConfigField("String", "DEFAULT_GEMINI_KEY",
+            "\"${System.getenv("DEFAULT_GEMINI_KEY") ?: ""}\"")
         buildConfigField("String", "AGENT_INTERNAL_TOKEN",
             "\"${System.getenv("AGENT_INTERNAL_TOKEN") ?: ""}\"")
     }

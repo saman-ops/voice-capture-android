@@ -51,10 +51,10 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="OpenAI API Key (für Transkription)"
+            android:hint="Gemini API Key (für Transkription)"
             android:layout_marginBottom="24dp">
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_openai_key"
+                android:id="@+id/et_gemini_key"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPassword"
