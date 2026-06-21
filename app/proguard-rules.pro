@@ -1,0 +1,10 @@
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class org.json.** { *; }
+-keep class androidx.room.** { *; }
+-dontwarn javax.annotation.**
+-keep class com.s3id3l.voicecapture.data.db.** { *; }

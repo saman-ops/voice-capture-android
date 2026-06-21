@@ -154,6 +154,56 @@ class LlmClient(private val prefs: PrefsManager) {
             .trim()
     }
 
+    // ── Format only (no audio transcription) ─────────────────────────────────
+
+    fun formatOnly(text: String, format: String): String = when (prefs.preferredLlm) {
+        "claude" -> formatWithClaude(text, format)
+        else     -> formatWithGemini(text, format)
+    }
+
+    // ── AI Chat against a recording ───────────────────────────────────────────
+
+    fun chat(
+        recording: com.s3id3l.voicecapture.data.db.RecordingEntity,
+        history: List<com.s3id3l.voicecapture.data.db.ChatMessageEntity>,
+        userMessage: String
+    ): String {
+        val systemPrompt = """Du bist ein Assistent der hilft, Sprachnotizen zu verfeinern.
+
+Transkript:
+${recording.transcript.ifEmpty { "(kein Transkript)" }}
+
+Aktueller Inhalt (${recording.format}):
+${recording.formattedOutput.ifEmpty { "(kein Inhalt)" }}
+
+Hilf beim Verfeinern, Umformulieren oder Ergänzen."""
+
+        val msgs = org.json.JSONArray()
+        history.dropLast(1).forEach { m ->
+            msgs.put(org.json.JSONObject().apply { put("role", m.role); put("content", m.content) })
+        }
+        msgs.put(org.json.JSONObject().apply { put("role", "user"); put("content", userMessage) })
+
+        val body = org.json.JSONObject().apply {
+            put("model", "claude-haiku-4-5-20251001")
+            put("max_tokens", 1024)
+            put("system", systemPrompt)
+            put("messages", msgs)
+        }
+
+        val req = okhttp3.Request.Builder()
+            .url("https://api.anthropic.com/v1/messages")
+            .addHeader("x-api-key", prefs.anthropicKey)
+            .addHeader("anthropic-version", "2023-06-01")
+            .post(body.toString().toRequestBody(JSON))
+            .build()
+
+        val resp    = http.newCall(req).execute()
+        val respBody = resp.body?.string() ?: throw RuntimeException("Claude: leere Antwort")
+        if (!resp.isSuccessful) throw RuntimeException("Claude Chat ${resp.code}: $respBody")
+        return org.json.JSONObject(respBody).getJSONArray("content").getJSONObject(0).getString("text").trim()
+    }
+
     // ── Format prompts ────────────────────────────────────────────────────────
 
     private fun formatSystemPrompt(format: String) = when (format) {

@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -15,7 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VoiceCapture">
 
-        <!-- Settings screen (launcher icon) -->
+        <!-- Main nav-host activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -26,13 +27,25 @@
             </intent-filter>
         </activity>
 
-        <!-- Recording screen (opened from widget) -->
+        <!-- Recording screen (can show on lock screen) -->
         <activity
             android:name=".RecordingActivity"
-            android:exported="true"
+            android:exported="false"
             android:launchMode="singleTop"
             android:showOnLockScreen="true"
             android:theme="@style/Theme.VoiceCapture.Recording" />
+
+        <!-- Detail / output screen -->
+        <activity
+            android:name=".ui.detail.DetailActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Recording ForegroundService -->
+        <service
+            android:name=".service.RecordingService"
+            android:foregroundServiceType="microphone"
+            android:exported="false" />
 
         <!-- Homescreen Widget -->
         <receiver

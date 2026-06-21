@@ -1,159 +1,214 @@
 package com.s3id3l.voicecapture
 
 import android.Manifest
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
-import android.media.MediaRecorder
 import android.os.Bundle
-import android.os.SystemClock
+import android.os.IBinder
+import android.view.View
 import android.view.WindowManager
-import android.widget.Chronometer
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.work.Data
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.OutOfQuotaPolicy
-import androidx.work.WorkManager
+import androidx.lifecycle.lifecycleScope
+import androidx.work.*
+import com.google.android.material.snackbar.Snackbar
 import com.s3id3l.voicecapture.data.PrefsManager
+import com.s3id3l.voicecapture.data.db.RecordingDatabase
+import com.s3id3l.voicecapture.data.db.RecordingEntity
 import com.s3id3l.voicecapture.databinding.ActivityRecordingBinding
-import com.s3id3l.voicecapture.widget.VoiceWidget
+import com.s3id3l.voicecapture.service.RecordingService
+import com.s3id3l.voicecapture.ui.detail.DetailActivity
 import com.s3id3l.voicecapture.worker.ProcessingWorker
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 class RecordingActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityRecordingBinding
+    private lateinit var b: ActivityRecordingBinding
     private lateinit var prefs: PrefsManager
+    private var svc: RecordingService? = null
+    private var bound = false
+    private var recordingId = -1L
+    private var serviceObserveStarted = false
 
-    private var recorder: MediaRecorder? = null
-    private var audioFile: File? = null
-    private var isRecording = false
+    private val conn = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, binder: IBinder) {
+            svc = (binder as RecordingService.RecordingBinder).getService()
+            bound = true
+            if (!serviceObserveStarted) {
+                serviceObserveStarted = true
+                observeService()
+            }
+        }
+        override fun onServiceDisconnected(name: ComponentName) { bound = false }
+    }
 
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) startRecording() else showToast("Mikrofon-Berechtigung verweigert.") }
+    private val micPerm = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok) doStartRecording()
+        else Snackbar.make(b.root, "Mikrofon-Berechtigung erforderlich", Snackbar.LENGTH_LONG).show()
+    }
+
+    private val notifPerm = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        @Suppress("DEPRECATION")
         window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
-        binding = ActivityRecordingBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
+        b = ActivityRecordingBinding.inflate(layoutInflater)
+        setContentView(b.root)
         prefs = PrefsManager(this)
 
-        updateSelectionLabels()
-
-        binding.tvFormat.setOnClickListener { cycleFormat() }
-        binding.tvTarget.setOnClickListener { cycleTarget() }
-
-        binding.btnRecord.setOnClickListener {
-            if (isRecording) stopRecording()
-            else checkPermissionAndRecord()
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED) {
+            notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        binding.btnCancel.setOnClickListener {
-            if (isRecording) cancelRecording()
+        val svcIntent = Intent(this, RecordingService::class.java)
+        startService(svcIntent)
+        bindService(svcIntent, conn, Context.BIND_AUTO_CREATE)
+
+        b.btnRecord.setOnClickListener {
+            when {
+                svc?.state?.value is RecordingService.State.Recording -> doStopRecording()
+                ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                    == PackageManager.PERMISSION_GRANTED -> doStartRecording()
+                else -> micPerm.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        }
+
+        b.btnCancel.setOnClickListener {
+            svc?.cancelRecording()
+            finish()
+        }
+
+        b.btnOpenDetail.setOnClickListener {
+            if (recordingId > 0) {
+                startActivity(
+                    Intent(this, DetailActivity::class.java)
+                        .putExtra(DetailActivity.EXTRA_ID, recordingId)
+                )
+            }
             finish()
         }
     }
 
-    // ── Format / Target cycling ───────────────────────────────────────────────
-
-    private fun cycleFormat() {
-        val idx = PrefsManager.FORMATS.indexOf(prefs.preferredFormat)
-        prefs.preferredFormat = PrefsManager.FORMATS[(idx + 1) % PrefsManager.FORMATS.size]
-        updateSelectionLabels()
-        VoiceWidget.updateAllWidgets(this)
+    private fun doStartRecording() {
+        svc?.startRecording()
     }
 
-    private fun cycleTarget() {
-        val idx = PrefsManager.TARGETS.indexOf(prefs.preferredTarget)
-        prefs.preferredTarget = PrefsManager.TARGETS[(idx + 1) % PrefsManager.TARGETS.size]
-        updateSelectionLabels()
-        VoiceWidget.updateAllWidgets(this)
-    }
-
-    private fun updateSelectionLabels() {
-        binding.tvFormat.text = PrefsManager.formatLabel(prefs.preferredFormat)
-        binding.tvTarget.text = PrefsManager.targetLabel(prefs.preferredTarget)
-    }
-
-    // ── Recording ─────────────────────────────────────────────────────────────
-
-    private fun checkPermissionAndRecord() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-            == PackageManager.PERMISSION_GRANTED
-        ) startRecording()
-        else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-    }
-
-    private fun startRecording() {
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val file = File(cacheDir, "vc_$timestamp.m4a").also { audioFile = it }
-
-        recorder = MediaRecorder(this).apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setAudioEncodingBitRate(64_000)
-            setAudioSamplingRate(16_000)
-            setOutputFile(file.absolutePath)
-            prepare()
-            start()
+    private fun doStopRecording() {
+        val durationMs = (svc?.state?.value as? RecordingService.State.Recording)?.durationMs ?: 0L
+        val file = svc?.stopRecording() ?: run {
+            Snackbar.make(b.root, "Aufnahme fehlgeschlagen", Snackbar.LENGTH_SHORT).show()
+            return
         }
+        showProcessingState()
 
-        isRecording = true
-        binding.btnRecord.text = "⏹ Stopp"
-        binding.tvStatus.text  = "Aufnahme läuft…"
-        binding.chronometer.base = SystemClock.elapsedRealtime()
-        binding.chronometer.start()
+        lifecycleScope.launch {
+            val db = RecordingDatabase.getInstance(this@RecordingActivity)
+            val id = db.recordingDao().insert(
+                RecordingEntity(
+                    audioPath  = file.absolutePath,
+                    durationMs = durationMs,
+                    status     = RecordingEntity.STATUS_PENDING,
+                    format     = prefs.preferredFormat,
+                    target     = prefs.preferredTarget
+                )
+            )
+            recordingId = id
+
+            WorkManager.getInstance(this@RecordingActivity).enqueue(
+                OneTimeWorkRequestBuilder<ProcessingWorker>()
+                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
+                    .setInputData(Data.Builder()
+                        .putLong(ProcessingWorker.KEY_RECORDING_ID, id)
+                        .putString(ProcessingWorker.KEY_AUDIO_PATH, file.absolutePath)
+                        .putString(ProcessingWorker.KEY_FORMAT, prefs.preferredFormat)
+                        .putString(ProcessingWorker.KEY_TARGET, prefs.preferredTarget)
+                        .build())
+                    .build()
+            )
+
+            db.recordingDao().getByIdFlow(id)
+                .filter {
+                    it?.status == RecordingEntity.STATUS_DONE ||
+                    it?.status == RecordingEntity.STATUS_ERROR
+                }
+                .first()
+                ?.let { rec ->
+                    if (rec.status == RecordingEntity.STATUS_DONE) showResultState(rec)
+                    else {
+                        showIdleState()
+                        Snackbar.make(b.root, "Fehler: ${rec.errorMessage ?: "unbekannt"}", Snackbar.LENGTH_LONG).show()
+                    }
+                }
+        }
     }
 
-    private fun stopRecording() {
-        binding.chronometer.stop()
-        runCatching { recorder?.stop() }
-        recorder?.release()
-        recorder = null
-        isRecording = false
-
-        val file = audioFile ?: run { showToast("Aufnahme fehlgeschlagen."); finish(); return }
-
-        binding.tvStatus.text   = "Verarbeitung gestartet…"
-        binding.btnRecord.isEnabled = false
-
-        val data = Data.Builder()
-            .putString(ProcessingWorker.KEY_AUDIO_PATH, file.absolutePath)
-            .putString(ProcessingWorker.KEY_FORMAT, prefs.preferredFormat)
-            .putString(ProcessingWorker.KEY_TARGET, prefs.preferredTarget)
-            .build()
-
-        val request = OneTimeWorkRequestBuilder<ProcessingWorker>()
-            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-            .setInputData(data)
-            .build()
-
-        WorkManager.getInstance(this).enqueue(request)
-
-        showToast("Verarbeitung gestartet")
-        finish()
+    private fun showIdleState() {
+        b.tvIdleHint.visibility    = View.VISIBLE
+        b.tvTimer.visibility       = View.GONE
+        b.waveformView.visibility  = View.GONE
+        b.processingGroup.visibility = View.GONE
+        b.resultGroup.visibility   = View.GONE
+        b.btnRecord.isEnabled      = true
+        b.btnRecord.text           = "🎤"
     }
 
-    private fun cancelRecording() {
-        binding.chronometer.stop()
-        runCatching { recorder?.stop(); recorder?.release() }
-        recorder = null
-        isRecording = false
-        audioFile?.delete()
+    private fun showRecordingState() {
+        b.tvIdleHint.visibility    = View.GONE
+        b.tvTimer.visibility       = View.VISIBLE
+        b.waveformView.visibility  = View.VISIBLE
+        b.processingGroup.visibility = View.GONE
+        b.resultGroup.visibility   = View.GONE
+        b.btnRecord.isEnabled      = true
+        b.btnRecord.text           = "⏹"
+    }
+
+    private fun showProcessingState() {
+        b.tvIdleHint.visibility    = View.GONE
+        b.tvTimer.visibility       = View.GONE
+        b.waveformView.visibility  = View.GONE
+        b.processingGroup.visibility = View.VISIBLE
+        b.resultGroup.visibility   = View.GONE
+        b.btnRecord.isEnabled      = false
+    }
+
+    private fun showResultState(rec: RecordingEntity) {
+        b.processingGroup.visibility = View.GONE
+        b.resultGroup.visibility     = View.VISIBLE
+        b.btnRecord.isEnabled        = false
+        b.tvResultPreview.text = rec.formattedOutput.take(200) +
+            if (rec.formattedOutput.length > 200) "…" else ""
+    }
+
+    private fun observeService() {
+        lifecycleScope.launch {
+            svc?.state?.collect { state ->
+                when (state) {
+                    is RecordingService.State.Idle     -> showIdleState()
+                    is RecordingService.State.Recording -> {
+                        showRecordingState()
+                        val s = state.durationMs / 1000
+                        b.tvTimer.text = "%02d:%02d".format(s / 60, s % 60)
+                        b.waveformView.setAmplitudes(state.amplitudeHistory)
+                    }
+                    is RecordingService.State.Stopping -> b.btnRecord.isEnabled = false
+                }
+            }
+        }
     }
 
     override fun onDestroy() {
+        if (bound) { unbindService(conn); bound = false }
         super.onDestroy()
-        if (isRecording) cancelRecording()
     }
-
-    private fun showToast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 }
