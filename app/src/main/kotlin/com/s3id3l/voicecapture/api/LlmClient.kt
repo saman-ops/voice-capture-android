@@ -27,79 +27,75 @@ class LlmClient(private val prefs: PrefsManager) {
 
     fun transcribeAndFormat(audioFile: File, format: String): ProcessingResult {
         val audioBytes = audioFile.readBytes()
-        val transcript = transcribeWithGemini(audioBytes)
-        val formatted = when (prefs.preferredLlm) {
-            "claude" -> formatWithClaude(transcript, format)
-            else     -> formatWithGemini(transcript, format)
-        }
-        val title = generateTitle(transcript)
+        val transcript = transcribeWithClaude(audioBytes)
+        val formatted  = formatWithClaude(transcript, format)
+        val title      = generateTitle(transcript)
         return ProcessingResult(transcript, formatted, title)
     }
 
     fun generateTitle(transcript: String): String = try {
         val body = JSONObject().apply {
-            put("contents", JSONArray().put(JSONObject().apply {
-                put("parts", JSONArray().put(JSONObject().apply {
-                    put("text", "Erstelle einen kurzen Titel (3-5 Stichworte, durch Komma getrennt, ohne Anführungszeichen) für diese Sprachnotiz:\n\n${transcript.take(600)}")
-                }))
+            put("model", "claude-haiku-4-5-20251001")
+            put("max_tokens", 40)
+            put("messages", JSONArray().put(JSONObject().apply {
+                put("role", "user")
+                put("content", "Erstelle einen kurzen Titel (3-5 Stichworte, durch Komma getrennt, ohne Anführungszeichen) für diese Sprachnotiz:\n\n${transcript.take(600)}")
             }))
-            put("generationConfig", JSONObject().apply {
-                put("temperature", 0.1)
-                put("maxOutputTokens", 40)
-            })
         }
         val req = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${prefs.geminiKey}")
+            .url("https://api.anthropic.com/v1/messages")
+            .addHeader("x-api-key", prefs.anthropicKey)
+            .addHeader("anthropic-version", "2023-06-01")
             .post(body.toString().toRequestBody(JSON))
             .build()
         val resp = http.newCall(req).execute()
         val json = JSONObject(resp.body?.string() ?: "")
-        json.getJSONArray("candidates").getJSONObject(0)
-            .getJSONObject("content").getJSONArray("parts").getJSONObject(0)
-            .getString("text").trim().take(60)
+        json.getJSONArray("content").getJSONObject(0).getString("text").trim().take(60)
     } catch (_: Exception) {
         transcript.split(" ").filter { it.length > 2 }.take(5).joinToString(", ").take(60).ifEmpty { "Aufnahme" }
     }
 
-    // ── Gemini transcription (audio → text) ───────────────────────────────────
+    // ── Claude transcription (audio → text) ───────────────────────────────────
 
-    private fun transcribeWithGemini(audioBytes: ByteArray): String {
+    private fun transcribeWithClaude(audioBytes: ByteArray): String {
         val audioBase64 = Base64.encodeToString(audioBytes, Base64.NO_WRAP)
 
         val body = JSONObject().apply {
-            put("contents", JSONArray().put(JSONObject().apply {
-                put("parts", JSONArray().apply {
+            put("model", "claude-haiku-4-5-20251001")
+            put("max_tokens", 4096)
+            put("messages", JSONArray().put(JSONObject().apply {
+                put("role", "user")
+                put("content", JSONArray().apply {
                     put(JSONObject().apply {
-                        put("inline_data", JSONObject().apply {
-                            put("mime_type", "audio/mp4")
+                        put("type", "audio")
+                        put("source", JSONObject().apply {
+                            put("type", "base64")
+                            put("media_type", "audio/mp4")
                             put("data", audioBase64)
                         })
                     })
                     put(JSONObject().apply {
+                        put("type", "text")
                         put("text", "Transkribiere diese Sprachaufnahme auf Deutsch. Gib ausschließlich den transkribierten Text zurück – keine Kommentare, keine Einleitung.")
                     })
                 })
             }))
-            put("generationConfig", JSONObject().apply {
-                put("temperature", 0.0)
-                put("maxOutputTokens", 4096)
-            })
         }
 
         val req = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${prefs.geminiKey}")
+            .url("https://api.anthropic.com/v1/messages")
+            .addHeader("x-api-key", prefs.anthropicKey)
+            .addHeader("anthropic-version", "2023-06-01")
+            .addHeader("anthropic-beta", "audio-1")
             .post(body.toString().toRequestBody(JSON))
             .build()
 
         val resp = http.newCall(req).execute()
-        val respBody = resp.body?.string() ?: throw RuntimeException("Gemini: leere Antwort")
-        if (!resp.isSuccessful) throw RuntimeException("Gemini STT Fehler ${resp.code}: $respBody")
+        val respBody = resp.body?.string() ?: throw RuntimeException("Claude: leere Antwort")
+        if (!resp.isSuccessful) throw RuntimeException("Claude STT Fehler ${resp.code}: $respBody")
 
         val json = JSONObject(respBody)
-        return json.getJSONArray("candidates")
-            .getJSONObject(0)
-            .getJSONObject("content")
-            .getJSONArray("parts")
+        return json.getJSONArray("content")
             .getJSONObject(0)
             .getString("text")
             .trim()
@@ -138,53 +134,9 @@ class LlmClient(private val prefs: PrefsManager) {
             .trim()
     }
 
-    // ── Gemini formatting (text → formatted text) ─────────────────────────────
-
-    private fun formatWithGemini(transcript: String, format: String): String {
-        val systemPrompt = formatSystemPrompt(format)
-
-        val body = JSONObject().apply {
-            put("system_instruction", JSONObject().apply {
-                put("parts", JSONArray().put(JSONObject().apply {
-                    put("text", systemPrompt)
-                }))
-            })
-            put("contents", JSONArray().put(JSONObject().apply {
-                put("parts", JSONArray().put(JSONObject().apply {
-                    put("text", transcript)
-                }))
-            }))
-            put("generationConfig", JSONObject().apply {
-                put("temperature", 0.3)
-                put("maxOutputTokens", 2048)
-            })
-        }
-
-        val req = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${prefs.geminiKey}")
-            .post(body.toString().toRequestBody(JSON))
-            .build()
-
-        val resp = http.newCall(req).execute()
-        val respBody = resp.body?.string() ?: throw RuntimeException("Gemini: leere Antwort")
-        if (!resp.isSuccessful) throw RuntimeException("Gemini Format Fehler ${resp.code}: $respBody")
-
-        val json = JSONObject(respBody)
-        return json.getJSONArray("candidates")
-            .getJSONObject(0)
-            .getJSONObject("content")
-            .getJSONArray("parts")
-            .getJSONObject(0)
-            .getString("text")
-            .trim()
-    }
-
     // ── Format only (no audio transcription) ─────────────────────────────────
 
-    fun formatOnly(text: String, format: String): String = when (prefs.preferredLlm) {
-        "claude" -> formatWithClaude(text, format)
-        else     -> formatWithGemini(text, format)
-    }
+    fun formatOnly(text: String, format: String): String = formatWithClaude(text, format)
 
     // ── AI Chat against a recording ───────────────────────────────────────────
 
