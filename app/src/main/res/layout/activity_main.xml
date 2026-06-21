@@ -25,6 +25,17 @@
             android:text="Einstellungen"
             android:textSize="13sp"
             android:textColor="#6B7280"
+            android:layout_marginBottom="16dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_record_now"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:text="🎤  JETZT AUFNEHMEN"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif-black"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/btn_record_bg"
             android:layout_marginBottom="24dp" />
 
         <!-- AI Model -->

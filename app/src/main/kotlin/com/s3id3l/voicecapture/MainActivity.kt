@@ -1,5 +1,6 @@
 package com.s3id3l.voicecapture
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +21,10 @@ class MainActivity : AppCompatActivity() {
         prefs = PrefsManager(this)
 
         loadSettings()
+
+        binding.btnRecordNow.setOnClickListener {
+            startActivity(Intent(this, RecordingActivity::class.java))
+        }
 
         binding.btnSave.setOnClickListener { saveSettings() }
 
