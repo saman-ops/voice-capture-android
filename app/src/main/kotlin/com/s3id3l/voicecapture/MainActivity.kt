@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
+import com.google.android.material.snackbar.Snackbar
 import com.s3id3l.voicecapture.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -16,5 +17,13 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         binding.bottomNav.setupWithNavController(navHost.navController)
+
+        // Show last crash info so the user can report it
+        VoiceCaptureApp.getLastCrash(this)?.let { crash ->
+            VoiceCaptureApp.clearCrash(this)
+            Snackbar.make(binding.root, "⚠️ Vorheriger Crash: ${crash.lines().getOrNull(1) ?: crash.take(80)}", Snackbar.LENGTH_INDEFINITE)
+                .setAction("OK") {}
+                .show()
+        }
     }
 }

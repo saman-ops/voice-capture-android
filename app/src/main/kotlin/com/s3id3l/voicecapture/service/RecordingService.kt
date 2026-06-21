@@ -30,7 +30,10 @@ class RecordingService : Service() {
     }
 
     private val binder = RecordingBinder()
-    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val exHandler = CoroutineExceptionHandler { _, t ->
+        android.util.Log.e("RecordingService", "Uncaught coroutine error", t)
+    }
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob() + exHandler)
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state
 
@@ -42,8 +45,15 @@ class RecordingService : Service() {
 
     override fun onBind(intent: Intent): IBinder = binder
 
+    // Called by ContextCompat.startForegroundService() from RecordingActivity.
+    // Must call startForeground() within 5 seconds — do it immediately.
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        ensureChannel()
+        startForegroundSafe(buildNotification("VoiceCapture bereit"))
+        return START_NOT_STICKY
+    }
+
     fun startRecording(): File {
-        // release any stale recorder from a previous session
         runCatching { recorder?.stop(); recorder?.release() }
         recorder = null
         amplitudeHistory.clear()
@@ -65,26 +75,20 @@ class RecordingService : Service() {
             }
         } catch (e: Exception) {
             file.delete()
-            recorder?.runCatching { stop(); release() }
+            runCatching { recorder?.release() }
             recorder = null
             _state.value = State.Idle
             throw RuntimeException("Mikrofon konnte nicht gestartet werden: ${e.message}", e)
         }
 
         startTimeMs = System.currentTimeMillis()
-        ensureChannel()
-        // Bug fix: Android 14+ requires foreground service type in startForeground()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIF_ID, buildNotification("Aufnahme läuft…"), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
-        } else {
-            startForeground(NOTIF_ID, buildNotification("Aufnahme läuft…"))
-        }
+        updateNotification("🔴 Aufnahme…")
 
         amplitudeJob = scope.launch {
             while (isActive) {
                 val duration = System.currentTimeMillis() - startTimeMs
                 if (duration >= 5 * 60 * 1000L) { stopRecording(); break }
-                val amp = try { recorder?.maxAmplitude ?: 0 } catch (e: Exception) { 0 }
+                val amp = try { recorder?.maxAmplitude ?: 0 } catch (_: Exception) { 0 }
                 amplitudeHistory.addLast(amp)
                 if (amplitudeHistory.size > 30) amplitudeHistory.removeFirst()
                 _state.value = State.Recording(duration, amplitudeHistory.toList())
@@ -98,6 +102,7 @@ class RecordingService : Service() {
     fun stopRecording(): File? {
         amplitudeJob?.cancel()
         _state.value = State.Stopping
+        val captured = audioFile
         val result = runCatching {
             recorder?.stop()
             recorder?.release()
@@ -105,12 +110,11 @@ class RecordingService : Service() {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             _state.value = State.Idle
-            audioFile
+            captured
         }.getOrElse {
-            // recorder may throw if called in wrong state — release anyway
             runCatching { recorder?.release() }
             recorder = null
-            stopForeground(STOP_FOREGROUND_REMOVE)
+            runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
             stopSelf()
             _state.value = State.Idle
             null
@@ -125,8 +129,17 @@ class RecordingService : Service() {
         recorder = null
         audioFile?.delete()
         audioFile = null
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+        stopSelf()
         _state.value = State.Idle
+    }
+
+    private fun startForegroundSafe(notification: Notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+        } else {
+            startForeground(NOTIF_ID, notification)
+        }
     }
 
     private fun formatDuration(ms: Long) = "%02d:%02d".format(ms / 60000, (ms % 60000) / 1000)
