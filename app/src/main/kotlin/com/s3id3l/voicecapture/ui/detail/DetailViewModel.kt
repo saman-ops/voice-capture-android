@@ -3,13 +3,16 @@ package com.s3id3l.voicecapture.ui.detail
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.*
 import com.s3id3l.voicecapture.api.LlmClient
 import com.s3id3l.voicecapture.data.PrefsManager
 import com.s3id3l.voicecapture.data.db.*
+import com.s3id3l.voicecapture.worker.ProcessingWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 
 class DetailViewModel(app: Application) : AndroidViewModel(app) {
     private val db    = RecordingDatabase.getInstance(app)
@@ -60,6 +63,27 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
         } finally {
             _reformatting.value = false
         }
+    }
+
+    fun retry() = viewModelScope.launch {
+        val rec = recording.value ?: return@launch
+        val audioPath = rec.audioPath ?: run {
+            _error.emit("Keine Audio-Datei vorhanden")
+            return@launch
+        }
+        db.recordingDao().update(rec.copy(status = RecordingEntity.STATUS_PROCESSING, errorMessage = null))
+        WorkManager.getInstance(getApplication()).enqueue(
+            OneTimeWorkRequestBuilder<ProcessingWorker>()
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
+                .setInputData(Data.Builder()
+                    .putLong(ProcessingWorker.KEY_RECORDING_ID, rec.id)
+                    .putString(ProcessingWorker.KEY_AUDIO_PATH, audioPath)
+                    .putString(ProcessingWorker.KEY_FORMAT, prefs.preferredFormat)
+                    .putString(ProcessingWorker.KEY_TARGET, prefs.preferredTarget)
+                    .build())
+                .build()
+        )
     }
 
     fun sendChat(text: String) = viewModelScope.launch {

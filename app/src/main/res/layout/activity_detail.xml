@@ -96,6 +96,21 @@
 
             </LinearLayout>
 
+            <!-- Retry button (shown on ERROR) -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_retry"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="↺  Nochmal versuchen"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/btn_primary_bg"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:layout_marginBottom="14dp"
+                android:visibility="gone" />
+
             <!-- Output section header -->
             <TextView
                 android:layout_width="match_parent"

@@ -3,6 +3,7 @@ package com.s3id3l.voicecapture.ui.detail
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
@@ -50,6 +51,7 @@ class DetailActivity : AppCompatActivity() {
         setupActions()
         setupChat()
         observeState()
+        b.btnRetry.setOnClickListener { vm.retry() }
 
         b.transcriptHeader.setOnClickListener {
             val visible = b.tvTranscript.visibility == View.VISIBLE
@@ -73,11 +75,26 @@ class DetailActivity : AppCompatActivity() {
             PrefsManager.FORMAT_BLOG    to "Blog",
             PrefsManager.FORMAT_RAW     to "Rohtext"
         ).forEach { (fmt, label) ->
-            b.formatChips.addView(Chip(this).apply {
-                text = label
-                isCheckable = true
-                setOnCheckedChangeListener { _, isChecked -> if (isChecked) vm.reformat(fmt) }
-            })
+            b.formatChips.addView(styledChip(label) { if (it) vm.reformat(fmt) })
+        }
+    }
+
+    private fun styledChip(label: String, onCheck: (Boolean) -> Unit): Chip {
+        val dp1 = resources.displayMetrics.density
+        return Chip(this).apply {
+            text = label
+            isCheckable = true
+            chipBackgroundColor = ColorStateList(
+                arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                intArrayOf(0xFF6366F1.toInt(), 0xFF1E293B.toInt())
+            )
+            setTextColor(ColorStateList(
+                arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                intArrayOf(0xFFFFFFFF.toInt(), 0xFFCBD5E1.toInt())
+            ))
+            chipStrokeWidth = dp1
+            chipStrokeColor = ColorStateList.valueOf(0xFF374151.toInt())
+            setOnCheckedChangeListener { _, checked -> onCheck(checked) }
         }
     }
 
@@ -173,6 +190,9 @@ class DetailActivity : AppCompatActivity() {
                     RecordingEntity.STATUS_ERROR      -> "❌ ${rec.errorMessage ?: "Fehler"}"
                     else -> "⏳"
                 }
+                b.btnRetry.visibility = if (
+                    rec.status == RecordingEntity.STATUS_ERROR && rec.audioPath != null
+                ) View.VISIBLE else View.GONE
                 if (b.etOutput.text.toString() != rec.formattedOutput) {
                     b.etOutput.setText(rec.formattedOutput)
                 }

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.IBinder
 import android.view.View
@@ -112,12 +113,29 @@ class RecordingActivity : AppCompatActivity() {
             PrefsManager.FORMAT_BLOG    to "Blog",
             PrefsManager.FORMAT_RAW     to "Rohtext"
         ).forEach { (fmt, label) ->
-            b.formatChipsRecord.addView(Chip(this).apply {
-                text = label
-                isCheckable = true
-                isChecked = prefs.preferredFormat == fmt
-                setOnCheckedChangeListener { _, checked -> if (checked) prefs.preferredFormat = fmt }
+            b.formatChipsRecord.addView(styledChip(label, prefs.preferredFormat == fmt) { checked ->
+                if (checked) prefs.preferredFormat = fmt
             })
+        }
+    }
+
+    private fun styledChip(label: String, checked: Boolean = false, onCheck: (Boolean) -> Unit): Chip {
+        val dp1 = resources.displayMetrics.density
+        return Chip(this).apply {
+            text = label
+            isCheckable = true
+            isChecked = checked
+            chipBackgroundColor = ColorStateList(
+                arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                intArrayOf(0xFF6366F1.toInt(), 0xFF1E293B.toInt())
+            )
+            setTextColor(ColorStateList(
+                arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                intArrayOf(0xFFFFFFFF.toInt(), 0xFFCBD5E1.toInt())
+            ))
+            chipStrokeWidth = dp1
+            chipStrokeColor = ColorStateList.valueOf(0xFF374151.toInt())
+            setOnCheckedChangeListener { _, isChecked -> onCheck(isChecked) }
         }
     }
 
