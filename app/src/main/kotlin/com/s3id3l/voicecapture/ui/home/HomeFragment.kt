@@ -32,12 +32,12 @@ class HomeFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        adapter = RecordingAdapter { rec ->
+        adapter = RecordingAdapter(onClick = { rec ->
             startActivity(
                 Intent(requireContext(), DetailActivity::class.java)
                     .putExtra(DetailActivity.EXTRA_ID, rec.id)
             )
-        }
+        })
         b.recyclerRecent.layoutManager = LinearLayoutManager(requireContext())
         b.recyclerRecent.adapter = adapter
 
