@@ -2,12 +2,22 @@ package com.s3id3l.voicecapture
 
 import android.app.Application
 import android.content.Context
+import androidx.work.WorkManager
 
 class VoiceCaptureApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
         installCrashHandler()
+        pruneStalework()
+    }
+
+    private fun pruneStalework() {
+        runCatching {
+            // Remove finished/cancelled jobs from previous versions to avoid state pollution.
+            // Running jobs are left intact — they'll complete normally.
+            WorkManager.getInstance(this).pruneWork()
+        }
     }
 
     private fun installCrashHandler() {

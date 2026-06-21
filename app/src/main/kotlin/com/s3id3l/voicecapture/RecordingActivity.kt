@@ -73,8 +73,6 @@ class RecordingActivity : AppCompatActivity() {
         }
 
         val svcIntent = Intent(this, RecordingService::class.java)
-        // startForegroundService so onStartCommand() calls startForeground() within 5s
-        androidx.core.content.ContextCompat.startForegroundService(this, svcIntent)
         bindService(svcIntent, conn, Context.BIND_AUTO_CREATE)
         bindingRequested = true
 

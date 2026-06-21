@@ -45,11 +45,10 @@ class RecordingService : Service() {
 
     override fun onBind(intent: Intent): IBinder = binder
 
-    // Called by ContextCompat.startForegroundService() from RecordingActivity.
-    // Must call startForeground() within 5 seconds — do it immediately.
+    // Service is normally started only via bindService() from RecordingActivity.
+    // If Android tries to restart it from an old START_STICKY state, stop immediately.
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        ensureChannel()
-        startForegroundSafe(buildNotification("VoiceCapture bereit"))
+        stopSelf(startId)
         return START_NOT_STICKY
     }
 
@@ -81,8 +80,10 @@ class RecordingService : Service() {
             throw RuntimeException("Mikrofon konnte nicht gestartet werden: ${e.message}", e)
         }
 
+        // RECORD_AUDIO is granted and active — safe to call startForeground(TYPE_MICROPHONE)
+        ensureChannel()
+        startForegroundSafe(buildNotification("🔴 Aufnahme…"))
         startTimeMs = System.currentTimeMillis()
-        updateNotification("🔴 Aufnahme…")
 
         amplitudeJob = scope.launch {
             while (isActive) {

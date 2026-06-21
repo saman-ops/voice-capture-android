@@ -14,6 +14,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Keys injected via GitHub Actions secrets (or local local.properties)
         buildConfigField("String", "DEFAULT_ANTHROPIC_KEY",
@@ -71,4 +72,9 @@ dependencies {
     // Fragment + Activity KTX
     implementation("androidx.fragment:fragment-ktx:1.8.6")
     implementation("androidx.activity:activity-ktx:1.9.3")
+    // Instrumented tests
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.core:core-ktx:1.6.1")
 }
