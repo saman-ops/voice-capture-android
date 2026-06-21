@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val db = RecordingDatabase.getInstance(app)
@@ -17,6 +18,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun delete(rec: RecordingEntity) = viewModelScope.launch {
+        rec.audioPath?.let { runCatching { File(it).delete() } }
         db.recordingDao().delete(rec)
     }
 }

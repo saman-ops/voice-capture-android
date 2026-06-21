@@ -15,6 +15,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.snackbar.Snackbar
 import com.s3id3l.voicecapture.data.db.RecordingEntity
 import com.s3id3l.voicecapture.databinding.FragmentHistoryBinding
+import com.s3id3l.voicecapture.ui.chat.MultiChatSheet
 import com.s3id3l.voicecapture.ui.detail.DetailActivity
 import kotlinx.coroutines.launch
 
@@ -31,12 +32,15 @@ class HistoryFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        adapter = RecordingAdapter { rec ->
-            startActivity(
-                Intent(requireContext(), DetailActivity::class.java)
-                    .putExtra(DetailActivity.EXTRA_ID, rec.id)
-            )
-        }
+        adapter = RecordingAdapter(
+            onClick = { rec ->
+                startActivity(
+                    Intent(requireContext(), DetailActivity::class.java)
+                        .putExtra(DetailActivity.EXTRA_ID, rec.id)
+                )
+            },
+            onLongClick = { rec -> vm.toggleSelection(rec.id) }
+        )
         b.recyclerHistory.layoutManager = LinearLayoutManager(requireContext())
         b.recyclerHistory.adapter = adapter
 
@@ -58,6 +62,10 @@ class HistoryFragment : Fragment() {
         ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
             override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, t: RecyclerView.ViewHolder) = false
             override fun onSwiped(vh: RecyclerView.ViewHolder, direction: Int) {
+                if (vm.selectedIds.value.isNotEmpty()) {
+                    adapter.notifyItemChanged(vh.adapterPosition)
+                    return
+                }
                 val rec = adapter.currentList[vh.adapterPosition]
                 vm.delete(rec)
                 Snackbar.make(b.root, "Aufnahme gelöscht", Snackbar.LENGTH_SHORT).show()
@@ -70,9 +78,32 @@ class HistoryFragment : Fragment() {
                 b.emptyHistory.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
         }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            vm.selectedIds.collect { ids ->
+                adapter.selectedIds = ids
+                if (ids.isEmpty()) {
+                    b.multiSelectBar.visibility = View.GONE
+                } else {
+                    b.multiSelectBar.visibility = View.VISIBLE
+                    b.tvSelectionCount.text = "${ids.size} ausgewählt"
+                }
+            }
+        }
+
+        b.btnMultiChat.setOnClickListener {
+            val ids = vm.selectedIds.value.toList()
+            if (ids.isNotEmpty()) {
+                MultiChatSheet.newInstance(ids)
+                    .show(parentFragmentManager, "multi_chat")
+            }
+        }
+
+        b.btnCancelSelection.setOnClickListener { vm.clearSelection() }
     }
 
     override fun onDestroyView() {
+        vm.clearSelection()
         super.onDestroyView()
         _b = null
     }

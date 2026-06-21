@@ -3,6 +3,7 @@ package com.s3id3l.voicecapture.ui.detail
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -19,6 +20,7 @@ import com.s3id3l.voicecapture.data.db.RecordingEntity
 import com.s3id3l.voicecapture.databinding.ActivityDetailBinding
 import com.s3id3l.voicecapture.databinding.BottomSheetChatBinding
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -31,6 +33,7 @@ class DetailActivity : AppCompatActivity() {
     private lateinit var b: ActivityDetailBinding
     private val vm: DetailViewModel by viewModels()
     private var chatAdapter: ChatAdapter? = null
+    private var mediaPlayer: MediaPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -174,6 +177,14 @@ class DetailActivity : AppCompatActivity() {
                     b.etOutput.setText(rec.formattedOutput)
                 }
                 b.tvTranscript.text = rec.transcript.ifEmpty { "(kein Transkript)" }
+
+                val audioFile = rec.audioPath?.let { File(it) }
+                if (audioFile != null && audioFile.exists()) {
+                    b.playbackGroup.visibility = View.VISIBLE
+                    b.btnPlay.setOnClickListener { togglePlayback(audioFile.absolutePath) }
+                } else {
+                    b.playbackGroup.visibility = View.GONE
+                }
             }
         }
         lifecycleScope.launch {
@@ -186,6 +197,34 @@ class DetailActivity : AppCompatActivity() {
         }
     }
 
+    private fun togglePlayback(path: String) {
+        val player = mediaPlayer
+        if (player != null && player.isPlaying) {
+            player.pause()
+            b.btnPlay.text = "▶  Aufnahme abspielen"
+            return
+        }
+        if (player != null && !player.isPlaying) {
+            player.start()
+            b.btnPlay.text = "⏸  Pausieren"
+            return
+        }
+        try {
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(path)
+                prepare()
+                start()
+                setOnCompletionListener {
+                    b.btnPlay.text = "▶  Aufnahme abspielen"
+                    mediaPlayer = null
+                }
+            }
+            b.btnPlay.text = "⏸  Pausieren"
+        } catch (e: Exception) {
+            Snackbar.make(b.root, "Wiedergabe fehlgeschlagen: ${e.message}", Snackbar.LENGTH_LONG).show()
+        }
+    }
+
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true
@@ -194,5 +233,12 @@ class DetailActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         vm.saveOutput(b.etOutput.text.toString())
+        mediaPlayer?.let { if (it.isPlaying) { it.pause(); b.btnPlay.text = "▶  Aufnahme abspielen" } }
+    }
+
+    override fun onDestroy() {
+        mediaPlayer?.release()
+        mediaPlayer = null
+        super.onDestroy()
     }
 }

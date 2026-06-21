@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.work.*
+import com.google.android.material.chip.Chip
 import com.google.android.material.snackbar.Snackbar
 import com.s3id3l.voicecapture.data.PrefsManager
 import com.s3id3l.voicecapture.data.db.RecordingDatabase
@@ -72,6 +73,8 @@ class RecordingActivity : AppCompatActivity() {
             notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
+        setupFormatChips()
+
         val svcIntent = Intent(this, RecordingService::class.java)
         bindService(svcIntent, conn, Context.BIND_AUTO_CREATE)
         bindingRequested = true
@@ -98,6 +101,23 @@ class RecordingActivity : AppCompatActivity() {
                 )
             }
             finish()
+        }
+    }
+
+    private fun setupFormatChips() {
+        listOf(
+            PrefsManager.FORMAT_BULLETS to "Bullets",
+            PrefsManager.FORMAT_TASKS   to "Aufgaben",
+            PrefsManager.FORMAT_EMAIL   to "E-Mail",
+            PrefsManager.FORMAT_BLOG    to "Blog",
+            PrefsManager.FORMAT_RAW     to "Rohtext"
+        ).forEach { (fmt, label) ->
+            b.formatChipsRecord.addView(Chip(this).apply {
+                text = label
+                isCheckable = true
+                isChecked = prefs.preferredFormat == fmt
+                setOnCheckedChangeListener { _, checked -> if (checked) prefs.preferredFormat = fmt }
+            })
         }
     }
 
@@ -152,8 +172,14 @@ class RecordingActivity : AppCompatActivity() {
                 .first()
                 ?.let { rec ->
                     isProcessing = false
-                    if (rec.status == RecordingEntity.STATUS_DONE) showResultState(rec)
-                    else {
+                    if (rec.status == RecordingEntity.STATUS_DONE) {
+                        // Directly open the detail view — no intermediate result screen needed
+                        startActivity(
+                            Intent(this@RecordingActivity, DetailActivity::class.java)
+                                .putExtra(DetailActivity.EXTRA_ID, rec.id)
+                        )
+                        finish()
+                    } else {
                         showIdleState()
                         Snackbar.make(b.root, "Fehler: ${rec.errorMessage ?: "unbekannt"}", Snackbar.LENGTH_LONG).show()
                     }
@@ -162,32 +188,35 @@ class RecordingActivity : AppCompatActivity() {
     }
 
     private fun showIdleState() {
-        b.tvIdleHint.visibility    = View.VISIBLE
-        b.tvTimer.visibility       = View.GONE
-        b.waveformView.visibility  = View.GONE
-        b.processingGroup.visibility = View.GONE
-        b.resultGroup.visibility   = View.GONE
-        b.btnRecord.isEnabled      = true
-        b.btnRecord.text           = "🎤"
+        b.formatSelectGroup.visibility = View.VISIBLE
+        b.tvIdleHint.visibility       = View.VISIBLE
+        b.tvTimer.visibility          = View.GONE
+        b.waveformView.visibility     = View.GONE
+        b.processingGroup.visibility  = View.GONE
+        b.resultGroup.visibility      = View.GONE
+        b.btnRecord.isEnabled         = true
+        b.btnRecord.text              = "🎤"
     }
 
     private fun showRecordingState() {
-        b.tvIdleHint.visibility    = View.GONE
-        b.tvTimer.visibility       = View.VISIBLE
-        b.waveformView.visibility  = View.VISIBLE
-        b.processingGroup.visibility = View.GONE
-        b.resultGroup.visibility   = View.GONE
-        b.btnRecord.isEnabled      = true
-        b.btnRecord.text           = "⏹"
+        b.formatSelectGroup.visibility = View.GONE
+        b.tvIdleHint.visibility       = View.GONE
+        b.tvTimer.visibility          = View.VISIBLE
+        b.waveformView.visibility     = View.VISIBLE
+        b.processingGroup.visibility  = View.GONE
+        b.resultGroup.visibility      = View.GONE
+        b.btnRecord.isEnabled         = true
+        b.btnRecord.text              = "⏹"
     }
 
     private fun showProcessingState() {
-        b.tvIdleHint.visibility    = View.GONE
-        b.tvTimer.visibility       = View.GONE
-        b.waveformView.visibility  = View.GONE
-        b.processingGroup.visibility = View.VISIBLE
-        b.resultGroup.visibility   = View.GONE
-        b.btnRecord.isEnabled      = false
+        b.formatSelectGroup.visibility = View.GONE
+        b.tvIdleHint.visibility       = View.GONE
+        b.tvTimer.visibility          = View.GONE
+        b.waveformView.visibility     = View.GONE
+        b.processingGroup.visibility  = View.VISIBLE
+        b.resultGroup.visibility      = View.GONE
+        b.btnRecord.isEnabled         = false
     }
 
     private fun showResultState(rec: RecordingEntity) {

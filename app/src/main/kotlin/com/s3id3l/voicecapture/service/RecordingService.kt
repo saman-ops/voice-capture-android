@@ -58,7 +58,7 @@ class RecordingService : Service() {
         amplitudeHistory.clear()
 
         val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val file = File(cacheDir, "vc_$ts.m4a").also { audioFile = it }
+        val file = File(filesDir, "vc_$ts.m4a").also { audioFile = it }
 
         try {
             @Suppress("DEPRECATION")

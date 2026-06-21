@@ -11,6 +11,8 @@ import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.TimeUnit
 
+data class ProcessingResult(val transcript: String, val formatted: String, val title: String)
+
 class LlmClient(private val prefs: PrefsManager) {
 
     private val http = OkHttpClient.Builder()
@@ -23,17 +25,40 @@ class LlmClient(private val prefs: PrefsManager) {
 
     // ── Public entry point ────────────────────────────────────────────────────
 
-    fun transcribeAndFormat(audioFile: File, format: String): String {
+    fun transcribeAndFormat(audioFile: File, format: String): ProcessingResult {
         val audioBytes = audioFile.readBytes()
-
-        // Step 1: Transcribe with Gemini (supports audio natively)
         val transcript = transcribeWithGemini(audioBytes)
-
-        // Step 2: Format with preferred LLM
-        return when (prefs.preferredLlm) {
+        val formatted = when (prefs.preferredLlm) {
             "claude" -> formatWithClaude(transcript, format)
             else     -> formatWithGemini(transcript, format)
         }
+        val title = generateTitle(transcript)
+        return ProcessingResult(transcript, formatted, title)
+    }
+
+    fun generateTitle(transcript: String): String = try {
+        val body = JSONObject().apply {
+            put("contents", JSONArray().put(JSONObject().apply {
+                put("parts", JSONArray().put(JSONObject().apply {
+                    put("text", "Erstelle einen kurzen Titel (3-5 Stichworte, durch Komma getrennt, ohne Anführungszeichen) für diese Sprachnotiz:\n\n${transcript.take(600)}")
+                }))
+            }))
+            put("generationConfig", JSONObject().apply {
+                put("temperature", 0.1)
+                put("maxOutputTokens", 40)
+            })
+        }
+        val req = Request.Builder()
+            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${prefs.geminiKey}")
+            .post(body.toString().toRequestBody(JSON))
+            .build()
+        val resp = http.newCall(req).execute()
+        val json = JSONObject(resp.body?.string() ?: "")
+        json.getJSONArray("candidates").getJSONObject(0)
+            .getJSONObject("content").getJSONArray("parts").getJSONObject(0)
+            .getString("text").trim().take(60)
+    } catch (_: Exception) {
+        transcript.split(" ").filter { it.length > 2 }.take(5).joinToString(", ").take(60).ifEmpty { "Aufnahme" }
     }
 
     // ── Gemini transcription (audio → text) ───────────────────────────────────
@@ -201,6 +226,50 @@ Hilf beim Verfeinern, Umformulieren oder Ergänzen."""
         val resp    = http.newCall(req).execute()
         val respBody = resp.body?.string() ?: throw RuntimeException("Claude: leere Antwort")
         if (!resp.isSuccessful) throw RuntimeException("Claude Chat ${resp.code}: $respBody")
+        return org.json.JSONObject(respBody).getJSONArray("content").getJSONObject(0).getString("text").trim()
+    }
+
+    // ── Multi-recording chat ──────────────────────────────────────────────────
+
+    fun chatMultiple(
+        recordings: List<com.s3id3l.voicecapture.data.db.RecordingEntity>,
+        history: List<com.s3id3l.voicecapture.data.db.ChatMessageEntity>,
+        userMessage: String
+    ): String {
+        val context = recordings.mapIndexed { i, rec ->
+            val content = rec.formattedOutput.ifEmpty { rec.transcript }.take(600)
+            "[${i + 1}] ${rec.title.ifEmpty { "Aufnahme ${i + 1}" }}: $content"
+        }.joinToString("\n\n")
+
+        val systemPrompt = """Du analysierst ${recordings.size} Sprachnotizen als Assistent.
+
+$context
+
+Beantworte Fragen zu allen Notizen. Vergleiche, synthetisiere und zitiere spezifische Aufnahmen mit [1], [2] etc."""
+
+        val msgs = org.json.JSONArray()
+        history.dropLast(1).forEach { m ->
+            msgs.put(org.json.JSONObject().apply { put("role", m.role); put("content", m.content) })
+        }
+        msgs.put(org.json.JSONObject().apply { put("role", "user"); put("content", userMessage) })
+
+        val body = org.json.JSONObject().apply {
+            put("model", "claude-haiku-4-5-20251001")
+            put("max_tokens", 2048)
+            put("system", systemPrompt)
+            put("messages", msgs)
+        }
+
+        val req = okhttp3.Request.Builder()
+            .url("https://api.anthropic.com/v1/messages")
+            .addHeader("x-api-key", prefs.anthropicKey)
+            .addHeader("anthropic-version", "2023-06-01")
+            .post(body.toString().toRequestBody(JSON))
+            .build()
+
+        val resp = http.newCall(req).execute()
+        val respBody = resp.body?.string() ?: throw RuntimeException("Claude: leere Antwort")
+        if (!resp.isSuccessful) throw RuntimeException("Claude Multi-Chat ${resp.code}: $respBody")
         return org.json.JSONObject(respBody).getJSONArray("content").getJSONObject(0).getString("text").trim()
     }
 

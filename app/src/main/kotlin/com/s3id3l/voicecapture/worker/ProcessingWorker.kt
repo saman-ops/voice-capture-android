@@ -47,16 +47,19 @@ class ProcessingWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker
         try {
             updateDbProcessing(recordingId)
 
-            val prefs     = PrefsManager(applicationContext)
-            val llm       = LlmClient(prefs)
-            val formatted = llm.transcribeAndFormat(audioFile, format)
-            val title     = formatted.lines().firstOrNull { it.isNotBlank() }?.take(50) ?: "Aufnahme"
+            val prefs  = PrefsManager(applicationContext)
+            val llm    = LlmClient(prefs)
+            val result = llm.transcribeAndFormat(audioFile, format)
 
-            updateDbDone(recordingId, formatted, title)
-            audioFile.delete()
+            // Rename to permanent location keyed by recordingId
+            val permanentFile = File(applicationContext.filesDir, "rec_${recordingId}.m4a")
+            runCatching { audioFile.renameTo(permanentFile) }
+            val savedPath = if (permanentFile.exists()) permanentFile.absolutePath else audioFile.absolutePath
+
+            updateDbDone(recordingId, result.transcript, result.formatted, result.title, savedPath)
 
             val router  = RoutingClient(applicationContext, prefs)
-            val outcome = router.send(formatted, target, format)
+            val outcome = router.send(result.formatted, target, format)
 
             when (outcome) {
                 is RoutingResult.Done       -> showResultNotification("✅ ${outcome.summary}", null)
@@ -68,7 +71,6 @@ class ProcessingWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker
 
             Result.success()
         } catch (e: Exception) {
-            audioFile.delete()
             updateDbError(recordingId, e.message ?: "Fehler")
             showResultNotification("❌ ${e.message}", null)
             if (runAttemptCount < 2) Result.retry() else Result.failure()
@@ -82,11 +84,11 @@ class ProcessingWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker
         db.recordingDao().update(rec.copy(status = RecordingEntity.STATUS_PROCESSING))
     }
 
-    private suspend fun updateDbDone(id: Long, output: String, title: String) {
+    private suspend fun updateDbDone(id: Long, transcript: String, output: String, title: String, audioPath: String?) {
         if (id < 0) return
         RecordingDatabase.getInstance(applicationContext)
             .recordingDao()
-            .updateDone(id, RecordingEntity.STATUS_DONE, "", output, title)
+            .updateDone(id, RecordingEntity.STATUS_DONE, transcript, output, title, audioPath)
     }
 
     private suspend fun updateDbError(id: Long, msg: String) {

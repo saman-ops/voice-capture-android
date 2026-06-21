@@ -60,4 +60,48 @@
         android:paddingBottom="8dp"
         android:clipToPadding="false" />
 
+    <!-- Multi-select action bar -->
+    <LinearLayout
+        android:id="@+id/multi_select_bar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/surface"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_selection_count"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_multi_chat"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="Mit KI besprechen"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/btn_primary_bg"
+            android:textSize="13sp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:layout_marginEnd="8dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_cancel_selection"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="✕"
+            android:textColor="@color/text_muted"
+            android:background="@null"
+            android:textSize="18sp" />
+
+    </LinearLayout>
+
 </LinearLayout>

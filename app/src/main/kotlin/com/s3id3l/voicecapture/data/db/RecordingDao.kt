@@ -27,8 +27,8 @@ interface RecordingDao {
     @Delete
     suspend fun delete(recording: RecordingEntity)
 
-    @Query("UPDATE recordings SET status=:status, transcript=:transcript, formattedOutput=:output, title=:title, audioPath=NULL WHERE id=:id")
-    suspend fun updateDone(id: Long, status: String, transcript: String, output: String, title: String)
+    @Query("UPDATE recordings SET status=:status, transcript=:transcript, formattedOutput=:output, title=:title, audioPath=:audioPath WHERE id=:id")
+    suspend fun updateDone(id: Long, status: String, transcript: String, output: String, title: String, audioPath: String?)
 
     @Query("UPDATE recordings SET status=:status, errorMessage=:error WHERE id=:id")
     suspend fun updateError(id: Long, status: String, error: String)
