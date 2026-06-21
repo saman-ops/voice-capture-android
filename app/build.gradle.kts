@@ -20,6 +20,8 @@ android {
             "\"${System.getenv("DEFAULT_ANTHROPIC_KEY") ?: ""}\"")
         buildConfigField("String", "DEFAULT_GEMINI_KEY",
             "\"${System.getenv("DEFAULT_GEMINI_KEY") ?: ""}\"")
+        buildConfigField("String", "AGENT_INTERNAL_TOKEN",
+            "\"${System.getenv("AGENT_INTERNAL_TOKEN") ?: ""}\"")
     }
 
     buildTypes {

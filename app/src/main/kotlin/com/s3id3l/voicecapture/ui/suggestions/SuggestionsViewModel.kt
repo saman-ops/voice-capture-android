@@ -3,6 +3,7 @@ package com.s3id3l.voicecapture.ui.suggestions
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.s3id3l.voicecapture.BuildConfig
 import com.s3id3l.voicecapture.data.db.RecordingDatabase
 import com.s3id3l.voicecapture.data.db.SuggestionEntity
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +55,7 @@ class SuggestionsViewModel(app: Application) : AndroidViewModel(app) {
                 }.toString().toRequestBody("application/json".toMediaType())
                 Request.Builder()
                     .url("https://agent.s3id3l.com/api/braincloud/bookmarks")
-                    .addHeader("X-Internal-Token", "0Rl16tBehBp-sC43DQc59M4kZ8cYAFfsf8NjClRoHuo")
+                    .addHeader("X-Internal-Token", BuildConfig.AGENT_INTERNAL_TOKEN)
                     .post(body).build()
                     .let { http.newCall(it).execute().close() }
             }
