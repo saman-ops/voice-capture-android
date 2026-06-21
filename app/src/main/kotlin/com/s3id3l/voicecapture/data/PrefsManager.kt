@@ -2,6 +2,7 @@ package com.s3id3l.voicecapture.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.s3id3l.voicecapture.BuildConfig
 
 class PrefsManager(context: Context) {
 
