@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.work.*
 import com.s3id3l.voicecapture.R
@@ -108,15 +110,19 @@ class ProcessingWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker
         }
     }
 
-    private fun buildForegroundInfo(status: String) = ForegroundInfo(
-        NOTIF_ID,
-        NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+    private fun buildForegroundInfo(status: String): ForegroundInfo {
+        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setContentTitle("VoiceCapture")
             .setContentText(status)
             .setSmallIcon(R.drawable.ic_mic)
             .setOngoing(true)
             .build()
-    )
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ForegroundInfo(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            ForegroundInfo(NOTIF_ID, notification)
+        }
+    }
 
     private fun showResultNotification(text: String, emailIntent: Intent?, preview: String? = null) {
         val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

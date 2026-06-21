@@ -2,8 +2,10 @@ package com.s3id3l.voicecapture.service
 
 import android.app.*
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.media.MediaRecorder
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.s3id3l.voicecapture.R
@@ -41,25 +43,42 @@ class RecordingService : Service() {
     override fun onBind(intent: Intent): IBinder = binder
 
     fun startRecording(): File {
+        // release any stale recorder from a previous session
+        runCatching { recorder?.stop(); recorder?.release() }
+        recorder = null
         amplitudeHistory.clear()
+
         val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val file = File(cacheDir, "vc_$ts.m4a").also { audioFile = it }
 
-        @Suppress("DEPRECATION")
-        recorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setAudioEncodingBitRate(64_000)
-            setAudioSamplingRate(16_000)
-            setOutputFile(file.absolutePath)
-            prepare()
-            start()
+        try {
+            @Suppress("DEPRECATION")
+            recorder = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setAudioEncodingBitRate(64_000)
+                setAudioSamplingRate(16_000)
+                setOutputFile(file.absolutePath)
+                prepare()
+                start()
+            }
+        } catch (e: Exception) {
+            file.delete()
+            recorder?.runCatching { stop(); release() }
+            recorder = null
+            _state.value = State.Idle
+            throw RuntimeException("Mikrofon konnte nicht gestartet werden: ${e.message}", e)
         }
 
         startTimeMs = System.currentTimeMillis()
         ensureChannel()
-        startForeground(NOTIF_ID, buildNotification("Aufnahme läuft…"))
+        // Bug fix: Android 14+ requires foreground service type in startForeground()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIF_ID, buildNotification("Aufnahme läuft…"), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+        } else {
+            startForeground(NOTIF_ID, buildNotification("Aufnahme läuft…"))
+        }
 
         amplitudeJob = scope.launch {
             while (isActive) {
@@ -79,14 +98,25 @@ class RecordingService : Service() {
     fun stopRecording(): File? {
         amplitudeJob?.cancel()
         _state.value = State.Stopping
-        return runCatching {
+        val result = runCatching {
             recorder?.stop()
             recorder?.release()
             recorder = null
             stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
             _state.value = State.Idle
             audioFile
-        }.getOrNull()
+        }.getOrElse {
+            // recorder may throw if called in wrong state — release anyway
+            runCatching { recorder?.release() }
+            recorder = null
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            _state.value = State.Idle
+            null
+        }
+        audioFile = null
+        return result
     }
 
     fun cancelRecording() {

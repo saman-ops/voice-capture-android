@@ -34,8 +34,10 @@ class RecordingActivity : AppCompatActivity() {
     private lateinit var prefs: PrefsManager
     private var svc: RecordingService? = null
     private var bound = false
+    private var bindingRequested = false
     private var recordingId = -1L
     private var serviceObserveStarted = false
+    private var isProcessing = false
 
     private val conn = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
@@ -71,8 +73,8 @@ class RecordingActivity : AppCompatActivity() {
         }
 
         val svcIntent = Intent(this, RecordingService::class.java)
-        startService(svcIntent)
         bindService(svcIntent, conn, Context.BIND_AUTO_CREATE)
+        bindingRequested = true
 
         b.btnRecord.setOnClickListener {
             when {
@@ -100,7 +102,11 @@ class RecordingActivity : AppCompatActivity() {
     }
 
     private fun doStartRecording() {
-        svc?.startRecording()
+        try {
+            svc?.startRecording()
+        } catch (e: Exception) {
+            Snackbar.make(b.root, e.message ?: "Aufnahme fehlgeschlagen", Snackbar.LENGTH_LONG).show()
+        }
     }
 
     private fun doStopRecording() {
@@ -109,6 +115,7 @@ class RecordingActivity : AppCompatActivity() {
             Snackbar.make(b.root, "Aufnahme fehlgeschlagen", Snackbar.LENGTH_SHORT).show()
             return
         }
+        isProcessing = true
         showProcessingState()
 
         lifecycleScope.launch {
@@ -144,6 +151,7 @@ class RecordingActivity : AppCompatActivity() {
                 }
                 .first()
                 ?.let { rec ->
+                    isProcessing = false
                     if (rec.status == RecordingEntity.STATUS_DONE) showResultState(rec)
                     else {
                         showIdleState()
@@ -194,7 +202,10 @@ class RecordingActivity : AppCompatActivity() {
         lifecycleScope.launch {
             svc?.state?.collect { state ->
                 when (state) {
-                    is RecordingService.State.Idle     -> showIdleState()
+                    is RecordingService.State.Idle -> {
+                        // only reset UI if we're not waiting for WorkManager to finish
+                        if (!isProcessing) showIdleState()
+                    }
                     is RecordingService.State.Recording -> {
                         showRecordingState()
                         val s = state.durationMs / 1000
@@ -208,7 +219,11 @@ class RecordingActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        if (bound) { unbindService(conn); bound = false }
+        if (bindingRequested) {
+            runCatching { unbindService(conn) }
+            bindingRequested = false
+            bound = false
+        }
         super.onDestroy()
     }
 }
