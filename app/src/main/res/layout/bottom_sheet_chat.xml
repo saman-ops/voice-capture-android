@@ -45,7 +45,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="Frage stellen…"
-            android:hintTextColor="#4B5563"
+            android:textColorHint="#4B5563"
             android:textColor="#F9FAFB"
             android:background="@drawable/input_bg"
             android:padding="10dp"

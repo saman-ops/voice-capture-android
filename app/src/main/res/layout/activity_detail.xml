@@ -43,7 +43,7 @@
                 android:imeOptions="actionDone"
                 android:inputType="textCapSentences"
                 android:hint="Aufnahme"
-                android:hintTextColor="#4B5563"
+                android:textColorHint="#4B5563"
                 android:layout_marginBottom="4dp" />
 
             <LinearLayout
