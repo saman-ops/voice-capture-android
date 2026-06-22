@@ -19,6 +19,10 @@ class PrefsManager(context: Context) {
         get() = prefs.getString("gemini_key", DEFAULT_GEMINI_KEY) ?: DEFAULT_GEMINI_KEY
         set(v) = prefs.edit().putString("gemini_key", v).apply()
 
+    var preferredChatModel: String
+        get() = prefs.getString("preferred_chat_model", "claude-haiku-4-5-20251001") ?: "claude-haiku-4-5-20251001"
+        set(v) = prefs.edit().putString("preferred_chat_model", v).apply()
+
     // ── Format & Target (used by widget and recording screen) ─────────────────
 
     var preferredFormat: String

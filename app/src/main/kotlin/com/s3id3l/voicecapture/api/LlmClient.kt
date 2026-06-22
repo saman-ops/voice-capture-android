@@ -170,7 +170,8 @@ class LlmClient internal constructor(
     fun chat(
         recording: com.s3id3l.voicecapture.data.db.RecordingEntity,
         history: List<com.s3id3l.voicecapture.data.db.ChatMessageEntity>,
-        userMessage: String
+        userMessage: String,
+        model: String = "claude-haiku-4-5-20251001"
     ): String {
         val systemPrompt = """Du bist ein Assistent der hilft, Sprachnotizen zu verfeinern.
 
@@ -189,7 +190,7 @@ Hilf beim Verfeinern, Umformulieren oder Ergänzen."""
         msgs.put(org.json.JSONObject().apply { put("role", "user"); put("content", userMessage) })
 
         val body = org.json.JSONObject().apply {
-            put("model", "claude-haiku-4-5-20251001")
+            put("model", model)
             put("max_tokens", 1024)
             put("system", systemPrompt)
             put("messages", msgs)
@@ -206,6 +207,30 @@ Hilf beim Verfeinern, Umformulieren oder Ergänzen."""
         val respBody = resp.body?.string() ?: throw RuntimeException("Claude: leere Antwort")
         if (!resp.isSuccessful) throw RuntimeException("Claude Chat ${resp.code}: $respBody")
         return org.json.JSONObject(respBody).getJSONArray("content").getJSONObject(0).getString("text").trim()
+    }
+
+    // ── Prompt Builder ────────────────────────────────────────────────────────
+
+    fun buildPrompt(rawFragments: String): String {
+        val body = JSONObject().apply {
+            put("model", "claude-opus-4-8")
+            put("max_tokens", 2048)
+            put("system", "Du bist ein Experte für Prompt-Engineering. Der Nutzer gibt dir chaotische, unstrukturierte Textfragmente. Deine Aufgabe: Erstelle daraus einen professionellen, klar strukturierten Prompt, der für große Sprachmodelle optimiert ist.\n\nRegeln:\n- Strukturiere den Prompt mit klarer Rolle, Kontext, Aufgabe und Output-Format\n- Entferne Redundanzen und Chaos\n- Verwende präzise, handlungsorientierte Sprache\n- Gib NUR den fertigen Prompt zurück — keine Erklärungen, keine Einleitung")
+            put("messages", JSONArray().put(JSONObject().apply {
+                put("role", "user")
+                put("content", rawFragments)
+            }))
+        }
+        val req = Request.Builder()
+            .url("https://api.anthropic.com/v1/messages")
+            .addHeader("x-api-key", anthropicKey)
+            .addHeader("anthropic-version", "2023-06-01")
+            .post(body.toString().toRequestBody(JSON))
+            .build()
+        val resp = http.newCall(req).execute()
+        val respBody = resp.body?.string() ?: throw RuntimeException("Claude: leere Antwort")
+        if (!resp.isSuccessful) throw RuntimeException("Claude Fehler ${resp.code}: $respBody")
+        return JSONObject(respBody).getJSONArray("content").getJSONObject(0).getString("text").trim()
     }
 
     // ── Multi-recording chat ──────────────────────────────────────────────────

@@ -65,6 +65,13 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun delete() = viewModelScope.launch {
+        val rec = recording.value ?: return@launch
+        rec.audioPath?.let { runCatching { java.io.File(it).delete() } }
+        db.chatMessageDao().deleteForRecording(_id.value)
+        db.recordingDao().delete(rec)
+    }
+
     fun retry() = viewModelScope.launch {
         val rec = recording.value ?: return@launch
         val audioPath = rec.audioPath ?: run {
@@ -86,19 +93,36 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    fun sendChat(text: String) = viewModelScope.launch {
+    fun sendChat(text: String, model: String = prefs.preferredChatModel) = viewModelScope.launch {
         val rec = recording.value ?: return@launch
         val id  = _id.value
         db.chatMessageDao().insert(ChatMessageEntity(recordingId = id, role = "user", content = text))
         _chatLoading.value = true
         try {
             val history = db.chatMessageDao().getForRecording(id)
-            val reply   = withContext(Dispatchers.IO) { LlmClient(prefs).chat(rec, history, text) }
+            val reply   = withContext(Dispatchers.IO) { LlmClient(prefs).chat(rec, history, text, model) }
             db.chatMessageDao().insert(ChatMessageEntity(recordingId = id, role = "assistant", content = reply))
         } catch (e: Exception) {
             _error.emit("Chat-Fehler: ${e.message}")
         } finally {
             _chatLoading.value = false
+        }
+    }
+
+    fun appendToRecording(text: String) = viewModelScope.launch {
+        val rec = recording.value ?: return@launch
+        val newOutput = if (rec.formattedOutput.isEmpty()) text else "${rec.formattedOutput}\n\n$text"
+        db.recordingDao().update(rec.copy(formattedOutput = newOutput))
+    }
+
+    fun buildPrompt(raw: String, onResult: (String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) { LlmClient(prefs).buildPrompt(raw) }
+                withContext(Dispatchers.Main) { onResult(result) }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onResult(null) }
+            }
         }
     }
 }

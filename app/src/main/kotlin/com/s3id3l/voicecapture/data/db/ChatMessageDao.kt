@@ -14,4 +14,7 @@ interface ChatMessageDao {
 
     @Insert
     suspend fun insert(msg: ChatMessageEntity): Long
+
+    @Query("DELETE FROM chat_messages WHERE recordingId=:recordingId")
+    suspend fun deleteForRecording(recordingId: Long)
 }

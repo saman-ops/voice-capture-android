@@ -7,9 +7,12 @@ import android.content.res.ColorStateList
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -51,6 +54,9 @@ class DetailActivity : AppCompatActivity() {
         setupActions()
         setupChat()
         observeState()
+        b.btnPromptBuilder.setOnClickListener {
+            PromptBuilderSheet(this, vm, b.root).show()
+        }
         b.btnRetry.setOnClickListener { vm.retry() }
 
         b.transcriptHeader.setOnClickListener {
@@ -108,13 +114,58 @@ class DetailActivity : AppCompatActivity() {
         }
 
         b.btnShare.setOnClickListener {
-            vm.saveOutput(b.etOutput.text.toString())
-            startActivity(Intent.createChooser(
-                Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, b.etOutput.text.toString())
-                }, "Teilen"
-            ))
+            val text = b.etOutput.text.toString()
+            vm.saveOutput(text)
+            val sheet = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+            val layout = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setPadding(32, 32, 32, 48)
+            }
+            val title = android.widget.TextView(this).apply {
+                setText("Teilen")
+                textSize = 16f
+                setTextColor(0xFFF9FAFB.toInt())
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setPadding(0, 0, 0, 24)
+            }
+            layout.addView(title)
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, text)
+            }
+            val btnShareOnly = androidx.appcompat.widget.AppCompatButton(this).apply {
+                setText("Text teilen")
+                setTextColor(0xFF6EE7B7.toInt())
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                setOnClickListener {
+                    sheet.dismiss()
+                    startActivity(Intent.createChooser(shareIntent, "Teilen"))
+                }
+            }
+            val btnCopyShare = androidx.appcompat.widget.AppCompatButton(this).apply {
+                setText("Text kopieren + teilen")
+                setTextColor(0xFFF9FAFB.toInt())
+                setBackgroundResource(com.s3id3l.voicecapture.R.drawable.btn_primary_bg)
+                setOnClickListener {
+                    sheet.dismiss()
+                    (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                        .setPrimaryClip(android.content.ClipData.newPlainText("VoiceCapture", text))
+                    startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text)
+                    }, "Teilen"))
+                }
+            }
+            val btnCancel = androidx.appcompat.widget.AppCompatButton(this).apply {
+                setText("Abbrechen")
+                setTextColor(0xFF9CA3AF.toInt())
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                setOnClickListener { sheet.dismiss() }
+            }
+            layout.addView(btnShareOnly)
+            layout.addView(btnCopyShare)
+            layout.addView(btnCancel)
+            sheet.setContentView(layout)
+            sheet.show()
         }
 
         b.btnCapacities.setOnClickListener {
@@ -130,10 +181,53 @@ class DetailActivity : AppCompatActivity() {
         }
 
         b.btnClaude.setOnClickListener {
-            (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
-                .setPrimaryClip(ClipData.newPlainText("VoiceCapture", b.etOutput.text.toString()))
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://claude.ai")))
-            Snackbar.make(b.root, "Text kopiert — in Claude einfügen", Snackbar.LENGTH_LONG).show()
+            val text = b.etOutput.text.toString()
+            vm.saveOutput(text)
+            val sheet = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+            val layout = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setPadding(32, 32, 32, 48)
+            }
+            val title = android.widget.TextView(this).apply {
+                setText("Mit Claude öffnen")
+                textSize = 16f
+                setTextColor(0xFFF9FAFB.toInt())
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setPadding(0, 0, 0, 24)
+            }
+            layout.addView(title)
+            val btnOpen = androidx.appcompat.widget.AppCompatButton(this).apply {
+                setText("Claude öffnen")
+                setTextColor(0xFF6EE7B7.toInt())
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                setOnClickListener {
+                    sheet.dismiss()
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://claude.ai")))
+                }
+            }
+            val btnCopyOpen = androidx.appcompat.widget.AppCompatButton(this).apply {
+                setText("Text kopieren + Claude öffnen")
+                setTextColor(0xFFF9FAFB.toInt())
+                setBackgroundResource(com.s3id3l.voicecapture.R.drawable.btn_primary_bg)
+                setOnClickListener {
+                    sheet.dismiss()
+                    (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
+                        .setPrimaryClip(ClipData.newPlainText("VoiceCapture", text))
+                    Snackbar.make(b.root, "Text kopiert", Snackbar.LENGTH_SHORT).show()
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://claude.ai")))
+                }
+            }
+            val btnCancel = androidx.appcompat.widget.AppCompatButton(this).apply {
+                setText("Abbrechen")
+                setTextColor(0xFF9CA3AF.toInt())
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                setOnClickListener { sheet.dismiss() }
+            }
+            layout.addView(btnOpen)
+            layout.addView(btnCopyOpen)
+            layout.addView(btnCancel)
+            sheet.setContentView(layout)
+            sheet.show()
         }
     }
 
@@ -143,7 +237,35 @@ class DetailActivity : AppCompatActivity() {
             val cb    = BottomSheetChatBinding.inflate(layoutInflater)
             sheet.setContentView(cb.root)
 
-            val adapter = ChatAdapter().also { chatAdapter = it }
+            // Model selector chips
+            val models = listOf(
+                "claude-haiku-4-5-20251001" to "Haiku (schnell)",
+                "claude-sonnet-4-6"         to "Sonnet",
+                "claude-opus-4-8"           to "Opus (stark)"
+            )
+            var selectedModel = PrefsManager(this).preferredChatModel
+            models.forEach { (id, label) ->
+                val chip = Chip(this).apply {
+                    text = label
+                    isCheckable = true
+                    isChecked = id == selectedModel
+                    chipBackgroundColor = ColorStateList(
+                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                        intArrayOf(0xFF6366F1.toInt(), 0xFF1E293B.toInt())
+                    )
+                    setTextColor(ColorStateList(
+                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                        intArrayOf(0xFFFFFFFF.toInt(), 0xFFCBD5E1.toInt())
+                    ))
+                    setOnCheckedChangeListener { _, checked -> if (checked) selectedModel = id }
+                }
+                cb.modelChips.addView(chip)
+            }
+
+            val adapter = ChatAdapter(onAddToRecording = { text ->
+                vm.appendToRecording(text)
+                Snackbar.make(b.root, "Zur Aufnahme hinzugefügt", Snackbar.LENGTH_SHORT).show()
+            }).also { chatAdapter = it }
             cb.recyclerChat.adapter = adapter
             cb.recyclerChat.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
 
@@ -164,7 +286,7 @@ class DetailActivity : AppCompatActivity() {
                 val text = cb.etInput.text.toString().trim()
                 if (text.isEmpty()) return@setOnClickListener
                 cb.etInput.text?.clear()
-                vm.sendChat(text)
+                vm.sendChat(text, selectedModel)
             }
 
             sheet.show()
@@ -243,6 +365,27 @@ class DetailActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Snackbar.make(b.root, "Wiedergabe fehlgeschlagen: ${e.message}", Snackbar.LENGTH_LONG).show()
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(com.s3id3l.voicecapture.R.menu.menu_detail, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == com.s3id3l.voicecapture.R.id.action_delete) {
+            AlertDialog.Builder(this)
+                .setTitle("Aufnahme löschen")
+                .setMessage("Diese Aufnahme und alle zugehörigen Daten werden dauerhaft gelöscht.")
+                .setPositiveButton("Löschen") { _, _ ->
+                    vm.delete()
+                    finish()
+                }
+                .setNegativeButton("Abbrechen", null)
+                .show()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     override fun onSupportNavigateUp(): Boolean {
