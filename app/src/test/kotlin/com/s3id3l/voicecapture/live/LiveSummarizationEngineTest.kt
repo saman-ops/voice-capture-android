@@ -3,6 +3,8 @@ package com.s3id3l.voicecapture.live
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -30,9 +32,17 @@ class LiveSummarizationEngineTest {
         server.shutdown()
     }
 
-    private fun claudeResponse(text: String) = MockResponse()
-        .setResponseCode(200)
-        .setBody("""{"content":[{"text":"$text","type":"text"}],"model":"claude-haiku"}""")
+    // Build response via JSONObject so special chars (newlines, quotes, emojis) are properly escaped
+    private fun claudeResponse(text: String): MockResponse {
+        val body = JSONObject().apply {
+            put("content", JSONArray().put(JSONObject().apply {
+                put("text", text)
+                put("type", "text")
+            }))
+            put("model", "claude-haiku")
+        }.toString()
+        return MockResponse().setResponseCode(200).setBody(body)
+    }
 
     @Test
     fun `extractActionItems parses two bullet items`() {
