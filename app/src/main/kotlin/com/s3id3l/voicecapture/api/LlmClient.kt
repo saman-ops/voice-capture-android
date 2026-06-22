@@ -1,6 +1,5 @@
 package com.s3id3l.voicecapture.api
 
-import android.util.Base64
 import com.s3id3l.voicecapture.data.PrefsManager
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -67,7 +66,7 @@ class LlmClient internal constructor(
     // ── Gemini transcription (audio bytes → text) ────────────────────────────
 
     private fun transcribeWithGemini(audioBytes: ByteArray): String {
-        val audioBase64 = Base64.encodeToString(audioBytes, Base64.NO_WRAP)
+        val audioBase64 = java.util.Base64.getEncoder().encodeToString(audioBytes)
 
         val body = JSONObject().apply {
             put("contents", JSONArray().put(JSONObject().apply {
