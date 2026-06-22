@@ -1,4 +1,4 @@
-name: Build APK
+name: Build & Test
 
 on:
   push:
@@ -39,7 +39,17 @@ jobs:
         run: gradle assembleDebug
         env:
           DEFAULT_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
-          DEFAULT_GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+          DEFAULT_OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          AGENT_INTERNAL_TOKEN: ${{ secrets.AGENT_INTERNAL_TOKEN }}
+
+      - name: Run transcription integration test
+        run: gradle test --tests "com.s3id3l.voicecapture.TranscriptionIntegrationTest"
+        env:
+          DEFAULT_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          DEFAULT_OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          AGENT_INTERNAL_TOKEN: ${{ secrets.AGENT_INTERNAL_TOKEN }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -47,3 +57,11 @@ jobs:
           name: voicecapture-debug-${{ github.run_number }}
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_number }}
+          path: app/build/reports/tests/test/
+          retention-days: 7
