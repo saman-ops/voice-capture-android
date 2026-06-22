@@ -51,6 +51,15 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
+      - name: Run all unit tests (UC-1 through UC-8)
+        run: gradle :app:testDebugUnitTest --info
+        env:
+          DEFAULT_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          DEFAULT_GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+          AGENT_INTERNAL_TOKEN: ${{ secrets.AGENT_INTERNAL_TOKEN }}
+
       - name: Run transcription integration test
         run: gradle :app:testDebugUnitTest --tests "com.s3id3l.voicecapture.TranscriptionIntegrationTest" --info
         env:
@@ -74,3 +83,40 @@ jobs:
           name: test-results-${{ github.run_number }}
           path: app/build/reports/tests/testDebugUnitTest/
           retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: voicecapture-debug-${{ github.run_number }}
+          path: ./apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "build-${{ github.run_number }}"
+          name: "VoiceCapture Build #${{ github.run_number }}"
+          body: |
+            Automatischer Build von `main`.
+
+            **Commit:** ${{ github.event.head_commit.message }}
+            **SHA:** ${{ github.sha }}
+          files: ./apk/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Telegram
+        run: |
+          BUILD_NUM="${{ github.run_number }}"
+          APK_URL="https://github.com/saman-ops/voice-capture-android/releases/tag/build-${BUILD_NUM}"
+          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1)
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "{\"chat_id\": \"621597017\", \"text\": \"✅ VoiceCapture Build ${BUILD_NUM} freigegeben\n\n📦 APK: ${APK_URL}\n\n${COMMIT_MSG}\"}"
