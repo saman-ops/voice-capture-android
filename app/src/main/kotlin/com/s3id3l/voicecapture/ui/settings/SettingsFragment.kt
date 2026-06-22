@@ -34,6 +34,7 @@ class SettingsFragment : Fragment() {
         b.etCapacitiesEmail.setText(prefs.capacitiesEmail)
         b.etCustomEmail.setText(prefs.customEmail)
         b.etWebhookUrl.setText(prefs.webhookUrl)
+        b.etGoogleDocWebhookUrl.setText(prefs.googleDocWebhookUrl)
         b.etSmtpHost.setText(prefs.smtpHost)
         b.etSmtpPort.setText(prefs.smtpPort.toString())
         b.etSmtpUser.setText(prefs.smtpUser)
@@ -45,7 +46,8 @@ class SettingsFragment : Fragment() {
         prefs.geminiKey       = b.etGeminiKey.text.toString().trim()
         prefs.capacitiesEmail = b.etCapacitiesEmail.text.toString().trim()
         prefs.customEmail     = b.etCustomEmail.text.toString().trim()
-        prefs.webhookUrl      = b.etWebhookUrl.text.toString().trim()
+        prefs.webhookUrl             = b.etWebhookUrl.text.toString().trim()
+        prefs.googleDocWebhookUrl    = b.etGoogleDocWebhookUrl.text.toString().trim()
         prefs.smtpHost        = b.etSmtpHost.text.toString().trim()
         prefs.smtpPort        = b.etSmtpPort.text.toString().toIntOrNull() ?: 587
         prefs.smtpUser        = b.etSmtpUser.text.toString().trim()

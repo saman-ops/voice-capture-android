@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.work.*
+import com.s3id3l.voicecapture.BuildConfig
 import com.s3id3l.voicecapture.R
 import com.s3id3l.voicecapture.api.LlmClient
 import com.s3id3l.voicecapture.api.RoutingClient
@@ -16,7 +17,16 @@ import com.s3id3l.voicecapture.data.db.RecordingDatabase
 import com.s3id3l.voicecapture.data.db.RecordingEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 class ProcessingWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
 
@@ -57,6 +67,11 @@ class ProcessingWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker
             val savedPath = if (permanentFile.exists()) permanentFile.absolutePath else audioFile.absolutePath
 
             updateDbDone(recordingId, result.transcript, result.formatted, result.title, savedPath)
+
+            // Fire-and-forget: sync to Google Doc (does not affect routing outcome)
+            if (prefs.googleDocWebhookUrl.isNotEmpty()) {
+                runCatching { sendToGoogleDoc(result.title, result.transcript, result.formatted, prefs.googleDocWebhookUrl) }
+            }
 
             val router  = RoutingClient(applicationContext, prefs)
             val outcome = router.send(result.formatted, target, format)
@@ -105,6 +120,23 @@ class ProcessingWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker
                 NotificationChannel(CHANNEL_ID, "VoiceCapture Verarbeitung", NotificationManager.IMPORTANCE_LOW)
             )
         }
+    }
+
+    private fun sendToGoogleDoc(title: String, transcript: String, formatted: String, webhookUrl: String) {
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.GERMANY)
+        val body = JSONObject().apply {
+            put("title", title.ifEmpty { "VoiceCapture ${sdf.format(Date())}" })
+            put("date", sdf.format(Date()))
+            put("transcript", transcript)
+            put("formatted", formatted)
+            put("token", BuildConfig.AGENT_INTERNAL_TOKEN)
+        }.toString().toRequestBody("application/json".toMediaType())
+        val http = OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+        val req = Request.Builder().url(webhookUrl).post(body).build()
+        http.newCall(req).execute().close()
     }
 
     private fun showResultNotification(text: String, emailIntent: Intent?, preview: String? = null) {

@@ -95,6 +95,18 @@ class HistoryFragment : Fragment() {
             vm.showTrash.collect { inTrash ->
                 b.btnTrash.text = if (inTrash) "← Verlauf" else "🗑 Papierkorb"
                 b.filterChips.visibility = if (inTrash) View.GONE else View.VISIBLE
+                // Push the correct list immediately when the view switches
+                if (inTrash) {
+                    val list = vm.trashRecordings.value
+                    adapter.submitList(list)
+                    b.emptyHistory.text = "Papierkorb ist leer"
+                    b.emptyHistory.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                } else {
+                    val list = vm.recordings.value
+                    adapter.submitList(list)
+                    b.emptyHistory.text = "Keine Aufnahmen vorhanden"
+                    b.emptyHistory.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                }
             }
         }
         viewLifecycleOwner.lifecycleScope.launch {
