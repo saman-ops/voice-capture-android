@@ -26,15 +26,11 @@ android {
     }
 
     signingConfigs {
-        // Consistent signing key so APKs can be installed as updates without uninstalling.
-        // Keystore is restored from KEYSTORE_BASE64 env var in CI (and locally if set).
+        // Keystore decoded by CI shell before build → path passed via KEYSTORE_PATH.
         create("stable") {
-            val ksBase64 = System.getenv("KEYSTORE_BASE64")
-            if (ksBase64 != null) {
-                val ksFile = File(rootProject.layout.buildDirectory.asFile.get(), "vc.jks")
-                ksFile.parentFile.mkdirs()
-                ksFile.writeBytes(java.util.Base64.getDecoder().decode(ksBase64))
-                storeFile = ksFile
+            val ksPath = System.getenv("KEYSTORE_PATH")
+            if (ksPath != null) {
+                storeFile = File(ksPath)
                 storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "voicecapture123"
                 keyAlias = System.getenv("KEY_ALIAS") ?: "voicecapture"
                 keyPassword = System.getenv("KEY_PASSWORD") ?: "voicecapture123"
@@ -46,14 +42,14 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
-            if (System.getenv("KEYSTORE_BASE64") != null) {
+            if (System.getenv("KEYSTORE_PATH") != null) {
                 signingConfig = signingConfigs.getByName("stable")
             }
         }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (System.getenv("KEYSTORE_BASE64") != null) {
+            if (System.getenv("KEYSTORE_PATH") != null) {
                 signingConfig = signingConfigs.getByName("stable")
             }
         }

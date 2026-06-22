@@ -35,13 +35,18 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ hashFiles('**/*.gradle.kts') }}
 
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > /tmp/vc.jks
+        shell: bash
+
       - name: Build Debug APK
         run: gradle assembleDebug
         env:
           DEFAULT_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
           DEFAULT_GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
           AGENT_INTERNAL_TOKEN: ${{ secrets.AGENT_INTERNAL_TOKEN }}
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PATH: /tmp/vc.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
