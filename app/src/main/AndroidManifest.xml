@@ -43,6 +43,13 @@
             android:exported="false"
             android:parentActivityName=".MainActivity" />
 
+        <!-- Live transcription screen -->
+        <activity
+            android:name=".live.LiveRecordingActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
         <!-- Recording ForegroundService -->
         <service
             android:name=".service.RecordingService"

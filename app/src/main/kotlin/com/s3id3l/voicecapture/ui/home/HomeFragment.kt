@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.s3id3l.voicecapture.RecordingActivity
+import com.s3id3l.voicecapture.live.LiveRecordingActivity
 import com.s3id3l.voicecapture.databinding.FragmentHomeBinding
 import com.s3id3l.voicecapture.ui.detail.DetailActivity
 import com.s3id3l.voicecapture.ui.history.RecordingAdapter
@@ -52,6 +53,10 @@ class HomeFragment : Fragment() {
 
         b.fabRecord.setOnClickListener {
             startActivity(Intent(requireContext(), RecordingActivity::class.java))
+        }
+
+        b.btnLiveRecord.setOnClickListener {
+            startActivity(Intent(requireContext(), LiveRecordingActivity::class.java))
         }
 
         b.btnSuggestions.setOnClickListener {

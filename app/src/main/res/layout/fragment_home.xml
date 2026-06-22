@@ -120,6 +120,21 @@
         android:layout_marginBottom="92dp"
         android:layout_marginEnd="100dp" />
 
+    <!-- Live recording button (above main FAB) -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_live_record"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="🔴 Live"
+        android:textSize="11sp"
+        android:textColor="@color/accent_voice_light"
+        android:background="@drawable/chip_bg"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="152dp"
+        android:layout_marginEnd="20dp" />
+
     <!-- Record FAB -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_record"
