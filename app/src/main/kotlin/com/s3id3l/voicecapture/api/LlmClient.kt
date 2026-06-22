@@ -35,7 +35,15 @@ class LlmClient internal constructor(
     // ── Public entry point ────────────────────────────────────────────────────
 
     fun transcribeAndFormat(audioFile: File, format: String): ProcessingResult {
-        val transcript = transcribeWithGemini(audioFile.readBytes())
+        val mimeType = when (audioFile.extension.lowercase()) {
+            "mp3"        -> "audio/mpeg"
+            "ogg"        -> "audio/ogg"
+            "wav"        -> "audio/wav"
+            "flac"       -> "audio/flac"
+            "webm"       -> "audio/webm"
+            else         -> "audio/mp4"  // .m4a, .mp4, .aac
+        }
+        val transcript = transcribeWithGemini(audioFile.readBytes(), mimeType)
         val formatted  = formatWithClaude(transcript, format)
         val title      = generateTitle(transcript)
         return ProcessingResult(transcript, formatted, title)
@@ -65,7 +73,7 @@ class LlmClient internal constructor(
 
     // ── Gemini transcription (audio bytes → text) ────────────────────────────
 
-    private fun transcribeWithGemini(audioBytes: ByteArray): String {
+    private fun transcribeWithGemini(audioBytes: ByteArray, mimeType: String = "audio/mp4"): String {
         val audioBase64 = java.util.Base64.getEncoder().encodeToString(audioBytes)
 
         val body = JSONObject().apply {
@@ -73,7 +81,7 @@ class LlmClient internal constructor(
                 put("parts", JSONArray().apply {
                     put(JSONObject().apply {
                         put("inline_data", JSONObject().apply {
-                            put("mime_type", "audio/mp4")
+                            put("mime_type", mimeType)
                             put("data", audioBase64)
                         })
                     })
@@ -89,7 +97,7 @@ class LlmClient internal constructor(
         }
 
         val req = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$geminiKey")
+            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$geminiKey")
             .post(body.toString().toRequestBody(JSON))
             .build()
 
@@ -101,7 +109,7 @@ class LlmClient internal constructor(
                 429      -> throw RuntimeException("Gemini Kontingent erschöpft – bitte kurz warten und erneut versuchen")
                 in 500..599 -> throw RuntimeException("Gemini Server-Fehler (${resp.code}) – bitte erneut versuchen")
             }
-            if (!resp.isSuccessful) throw RuntimeException("Gemini Fehler ${resp.code}")
+            if (!resp.isSuccessful) throw RuntimeException("Gemini Fehler ${resp.code}: $respBody")
 
             val json = JSONObject(respBody)
             return json.getJSONArray("candidates")
