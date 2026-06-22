@@ -15,7 +15,8 @@ data class RecordingEntity(
     val status: String = STATUS_PENDING,
     val errorMessage: String? = null,
     val durationMs: Long = 0,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val deletedAt: Long = 0   // 0 = active, >0 = soft-deleted (epoch ms)
 ) {
     companion object {
         const val STATUS_PENDING    = "pending"

@@ -6,10 +6,13 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface RecordingDao {
 
-    @Query("SELECT * FROM recordings ORDER BY createdAt DESC")
+    @Query("SELECT * FROM recordings WHERE deletedAt = 0 ORDER BY createdAt DESC")
     fun getAllFlow(): Flow<List<RecordingEntity>>
 
-    @Query("SELECT * FROM recordings ORDER BY createdAt DESC LIMIT 5")
+    @Query("SELECT * FROM recordings WHERE deletedAt > 0 ORDER BY deletedAt DESC")
+    fun getTrashFlow(): Flow<List<RecordingEntity>>
+
+    @Query("SELECT * FROM recordings WHERE deletedAt = 0 ORDER BY createdAt DESC LIMIT 5")
     fun getRecentFlow(): Flow<List<RecordingEntity>>
 
     @Query("SELECT * FROM recordings WHERE id = :id")
@@ -17,6 +20,9 @@ interface RecordingDao {
 
     @Query("SELECT * FROM recordings WHERE id = :id")
     suspend fun getById(id: Long): RecordingEntity?
+
+    @Query("SELECT * FROM recordings WHERE id IN (:ids) AND deletedAt = 0")
+    suspend fun getByIds(ids: List<Long>): List<RecordingEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(recording: RecordingEntity): Long
@@ -26,6 +32,12 @@ interface RecordingDao {
 
     @Delete
     suspend fun delete(recording: RecordingEntity)
+
+    @Query("UPDATE recordings SET deletedAt = :ts WHERE id = :id")
+    suspend fun softDelete(id: Long, ts: Long)
+
+    @Query("UPDATE recordings SET deletedAt = 0 WHERE id = :id")
+    suspend fun restore(id: Long)
 
     @Query("UPDATE recordings SET status=:status, transcript=:transcript, formattedOutput=:output, title=:title, audioPath=:audioPath WHERE id=:id")
     suspend fun updateDone(id: Long, status: String, transcript: String, output: String, title: String, audioPath: String?)

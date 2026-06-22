@@ -66,10 +66,7 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun delete() = viewModelScope.launch {
-        val rec = recording.value ?: return@launch
-        rec.audioPath?.let { runCatching { java.io.File(it).delete() } }
-        db.chatMessageDao().deleteForRecording(_id.value)
-        db.recordingDao().delete(rec)
+        db.recordingDao().softDelete(_id.value, System.currentTimeMillis())
     }
 
     fun retry() = viewModelScope.launch {

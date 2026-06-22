@@ -375,9 +375,9 @@ class DetailActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == com.s3id3l.voicecapture.R.id.action_delete) {
             AlertDialog.Builder(this)
-                .setTitle("Aufnahme löschen")
-                .setMessage("Diese Aufnahme und alle zugehörigen Daten werden dauerhaft gelöscht.")
-                .setPositiveButton("Löschen") { _, _ ->
+                .setTitle("In Papierkorb verschieben?")
+                .setMessage("Die Aufnahme wird in den Papierkorb verschoben und kann dort wiederhergestellt werden.")
+                .setPositiveButton("In Papierkorb") { _, _ ->
                     vm.delete()
                     finish()
                 }
