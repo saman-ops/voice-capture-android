@@ -64,13 +64,14 @@ class PrefsManager(context: Context) {
         set(v) = prefs.edit().putString("webhook_url", v).apply()
 
     var googleDocWebhookUrl: String
-        get() = prefs.getString("google_doc_webhook_url", "") ?: ""
+        get() = prefs.getString("google_doc_webhook_url", DEFAULT_GOOGLE_DOC_WEBHOOK) ?: DEFAULT_GOOGLE_DOC_WEBHOOK
         set(v) = prefs.edit().putString("google_doc_webhook_url", v).apply()
 
     companion object {
         // Injected at build time via BuildConfig (set as GitHub Actions secrets)
-        const val DEFAULT_ANTHROPIC_KEY = BuildConfig.DEFAULT_ANTHROPIC_KEY
-        const val DEFAULT_GEMINI_KEY    = BuildConfig.DEFAULT_GEMINI_KEY
+        const val DEFAULT_ANTHROPIC_KEY      = BuildConfig.DEFAULT_ANTHROPIC_KEY
+        const val DEFAULT_GEMINI_KEY         = BuildConfig.DEFAULT_GEMINI_KEY
+        const val DEFAULT_GOOGLE_DOC_WEBHOOK = "https://script.google.com/macros/s/AKfycbwl3eNsiFbr8UNFR7yjrlcHqJA7m3VzJJrhMc2KyIR6Y_djWEoLBUXhaQtbvkXlF-Sg/exec"
 
         // Format constants
         const val FORMAT_TASKS   = "tasks"
