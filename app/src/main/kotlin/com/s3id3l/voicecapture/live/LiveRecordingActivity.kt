@@ -3,11 +3,13 @@ package com.s3id3l.voicecapture.live
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.speech.SpeechRecognizer
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -38,6 +40,11 @@ class LiveRecordingActivity : AppCompatActivity() {
     }
 
     private fun checkPermissionAndStart() {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, "Spracherkennung nicht verfügbar auf diesem Gerät", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             == PackageManager.PERMISSION_GRANTED) {
             vm.startLive(this)
