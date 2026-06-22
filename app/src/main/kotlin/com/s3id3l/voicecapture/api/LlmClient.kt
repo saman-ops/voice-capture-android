@@ -89,7 +89,7 @@ class LlmClient internal constructor(
         }
 
         val req = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$geminiKey")
+            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$geminiKey")
             .post(body.toString().toRequestBody(JSON))
             .build()
 
