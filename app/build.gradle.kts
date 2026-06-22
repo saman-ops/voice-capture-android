@@ -12,8 +12,8 @@ android {
         applicationId = "com.s3id3l.voicecapture"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+        versionName = "1.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Keys injected via GitHub Actions secrets (or local local.properties)
@@ -25,14 +25,37 @@ android {
             "\"${System.getenv("AGENT_INTERNAL_TOKEN") ?: ""}\"")
     }
 
+    signingConfigs {
+        // Consistent signing key so APKs can be installed as updates without uninstalling.
+        // Keystore is restored from KEYSTORE_BASE64 env var in CI (and locally if set).
+        create("stable") {
+            val ksBase64 = System.getenv("KEYSTORE_BASE64")
+            if (ksBase64 != null) {
+                val ksFile = File(rootProject.layout.buildDirectory.asFile.get(), "vc.jks")
+                ksFile.parentFile.mkdirs()
+                ksFile.writeBytes(java.util.Base64.getDecoder().decode(ksBase64))
+                storeFile = ksFile
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "voicecapture123"
+                keyAlias = System.getenv("KEY_ALIAS") ?: "voicecapture"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: "voicecapture123"
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
+            if (System.getenv("KEYSTORE_BASE64") != null) {
+                signingConfig = signingConfigs.getByName("stable")
+            }
         }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (System.getenv("KEYSTORE_BASE64") != null) {
+                signingConfig = signingConfigs.getByName("stable")
+            }
         }
     }
 

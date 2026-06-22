@@ -45,10 +45,10 @@ class RecordingService : Service() {
 
     override fun onBind(intent: Intent): IBinder = binder
 
-    // Service is normally started only via bindService() from RecordingActivity.
-    // If Android tries to restart it from an old START_STICKY state, stop immediately.
+    // Started explicitly when a recording begins (via startForegroundService) so the
+    // service survives Activity recreation (rotation, low-memory). stopSelf() is called
+    // from stopRecording()/cancelRecording() when the work is actually done.
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        stopSelf(startId)
         return START_NOT_STICKY
     }
 

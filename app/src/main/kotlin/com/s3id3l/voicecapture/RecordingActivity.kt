@@ -147,6 +147,14 @@ class RecordingActivity : AppCompatActivity() {
 
     private fun doStartRecording() {
         try {
+            // Start the service independently so it survives Activity rotation / recreation.
+            // The foreground notification keeps it alive even without an active binding.
+            val svcIntent = Intent(this, RecordingService::class.java)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(svcIntent)
+            } else {
+                startService(svcIntent)
+            }
             svc?.startRecording()
         } catch (e: Exception) {
             Snackbar.make(b.root, e.message ?: "Aufnahme fehlgeschlagen", Snackbar.LENGTH_LONG).show()
