@@ -13,12 +13,14 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * UC-1: Recording data integrity
  * UC-2: History list filtering (active vs trash)
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
 class RecordingDaoTest {
 
     private lateinit var db: RecordingDatabase
