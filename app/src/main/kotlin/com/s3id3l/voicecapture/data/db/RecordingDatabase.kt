@@ -2,6 +2,7 @@ package com.s3id3l.voicecapture.data.db
 
 import android.content.Context
 import androidx.room.*
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
