@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
 
 data class ProcessingResult(val transcript: String, val formatted: String, val title: String)
 
-class LlmClient private constructor(
+class LlmClient internal constructor(
     private val anthropicKey: String,
     private val geminiKey: String,
 ) {
