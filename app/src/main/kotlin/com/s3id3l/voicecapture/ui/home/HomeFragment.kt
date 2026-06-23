@@ -51,13 +51,7 @@ class HomeFragment : Fragment() {
             }
         }).attachToRecyclerView(b.recyclerRecent)
 
-        b.fabRecord.setOnClickListener {
-            startActivity(Intent(requireContext(), RecordingActivity::class.java))
-        }
-
-        b.btnLiveRecord.setOnClickListener {
-            startActivity(Intent(requireContext(), LiveRecordingActivity::class.java))
-        }
+        b.fabRecord.setOnClickListener { showRecordChooser() }
 
         b.btnSuggestions.setOnClickListener {
             SuggestionsBottomSheet().show(parentFragmentManager, "suggestions")
@@ -70,6 +64,19 @@ class HomeFragment : Fragment() {
                 b.recyclerRecent.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
             }
         }
+    }
+
+    private fun showRecordChooser() {
+        val options = arrayOf("🎙  Standard-Aufnahme", "🔴  Live-Transkription")
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Neue Aufnahme")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> startActivity(Intent(requireContext(), RecordingActivity::class.java))
+                    1 -> startActivity(Intent(requireContext(), LiveRecordingActivity::class.java))
+                }
+            }
+            .show()
     }
 
     override fun onDestroyView() {

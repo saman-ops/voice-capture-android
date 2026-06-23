@@ -165,6 +165,40 @@ class LlmClient internal constructor(
 
     fun formatOnly(text: String, format: String): String = formatWithClaude(text, format)
 
+    // ── Action item extraction (transcript → list of tasks) ───────────────────
+
+    fun extractActionItems(transcript: String): List<String> = try {
+        val body = JSONObject().apply {
+            put("model", "claude-haiku-4-5-20251001")
+            put("max_tokens", 512)
+            put("system", "Du extrahierst Action Items aus einem Meeting-Transkript auf Deutsch. Nur konkrete Aufgaben mit Verantwortlichem. Format pro Zeile: \"• [Person/Ich]: [Aufgabe] ([Frist falls genannt])\". Maximal 8. Wenn keine: leerer String.")
+            put("messages", JSONArray().put(JSONObject().apply {
+                put("role", "user")
+                put("content", transcript.take(8000))
+            }))
+        }
+        val req = Request.Builder()
+            .url("https://api.anthropic.com/v1/messages")
+            .addHeader("x-api-key", anthropicKey)
+            .addHeader("anthropic-version", "2023-06-01")
+            .post(body.toString().toRequestBody(JSON))
+            .build()
+        val resp = http.newCall(req).execute()
+        val respBody = resp.body?.string() ?: ""
+        if (!resp.isSuccessful) {
+            emptyList()
+        } else {
+            val text = JSONObject(respBody).getJSONArray("content").getJSONObject(0).getString("text").trim()
+            text.lines()
+                .map { it.trim() }
+                .filter { it.startsWith("•") }
+                .map { it.removePrefix("•").trim() }
+                .filter { it.isNotBlank() }
+        }
+    } catch (_: Exception) {
+        emptyList()
+    }
+
     // ── AI Chat against a recording ───────────────────────────────────────────
 
     fun chat(

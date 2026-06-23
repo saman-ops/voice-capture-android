@@ -463,22 +463,24 @@ class DetailActivity : AppCompatActivity() {
                     } else {
                         b.deepSummarySection.visibility = View.GONE
                     }
-                    if (rec.liveActionItems.isNotEmpty() && rec.liveActionItems != "[]") {
-                        val items = parseDetailActionItems(rec.liveActionItems)
-                        if (items.isNotEmpty()) {
-                            currentRecordingId = rec.id
-                            // Only reload list if not already managing (avoid overwriting sentToTasks state mid-session)
-                            if (currentActionItems.isEmpty() || currentActionItems.map { it.text } != items.map { it.text }) {
-                                currentActionItems = items.toMutableList()
-                            }
-                            detailActionAdapter.submitList(currentActionItems.toList())
-                            b.actionItemsSection.visibility = View.VISIBLE
-                        } else {
-                            b.actionItemsSection.visibility = View.GONE
+                }
+
+                // Action Items — fuer ALLE Aufnahmen mit erkannten Tasks (nicht nur Live)
+                if (rec.liveActionItems.isNotEmpty() && rec.liveActionItems != "[]") {
+                    val items = parseDetailActionItems(rec.liveActionItems)
+                    if (items.isNotEmpty()) {
+                        currentRecordingId = rec.id
+                        // Only reload list if not already managing (avoid overwriting sentToTasks state mid-session)
+                        if (currentActionItems.isEmpty() || currentActionItems.map { it.text } != items.map { it.text }) {
+                            currentActionItems = items.toMutableList()
                         }
+                        detailActionAdapter.submitList(currentActionItems.toList())
+                        b.actionItemsSection.visibility = View.VISIBLE
                     } else {
                         b.actionItemsSection.visibility = View.GONE
                     }
+                } else {
+                    b.actionItemsSection.visibility = View.GONE
                 }
 
                 val audioFile = rec.audioPath?.let { File(it) }

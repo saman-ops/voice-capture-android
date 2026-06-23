@@ -41,6 +41,13 @@ class RecordingAdapter(
             holder.b.tvFormat.text = item.format.replaceFirstChar { it.uppercase() }
             holder.b.tvFormat.setTextColor(0xFF6B7280.toInt())
         }
+        val actionCount = countActionItems(item.liveActionItems)
+        if (actionCount > 0) {
+            holder.b.tvActionCount.text = "📋 $actionCount"
+            holder.b.tvActionCount.visibility = android.view.View.VISIBLE
+        } else {
+            holder.b.tvActionCount.visibility = android.view.View.GONE
+        }
         val selected = item.id in selectedIds
         holder.b.tvStatus.text = if (selected) "✓" else when (item.status) {
             RecordingEntity.STATUS_DONE       -> "✅"
@@ -53,6 +60,11 @@ class RecordingAdapter(
             if (selectedIds.isNotEmpty()) onLongClick?.invoke(item) else onClick(item)
         }
         holder.b.root.setOnLongClickListener { onLongClick?.invoke(item); true }
+    }
+
+    private fun countActionItems(json: String): Int {
+        if (json.isBlank() || json == "[]") return 0
+        return try { org.json.JSONArray(json).length() } catch (_: Exception) { 0 }
     }
 
     companion object {

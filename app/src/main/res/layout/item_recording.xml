@@ -68,6 +68,16 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
 
+                <TextView
+                    android:id="@+id/tv_action_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_muted"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginStart="8dp"
+                    android:visibility="gone" />
+
             </LinearLayout>
 
         </LinearLayout>

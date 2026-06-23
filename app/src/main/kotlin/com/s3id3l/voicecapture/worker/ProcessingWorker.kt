@@ -21,6 +21,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
@@ -67,6 +68,25 @@ class ProcessingWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker
             val savedPath = if (permanentFile.exists()) permanentFile.absolutePath else audioFile.absolutePath
 
             updateDbDone(recordingId, result.transcript, result.formatted, result.title, savedPath)
+
+            // Best-effort: extract action items from the transcript (must not fail the recording)
+            runCatching {
+                val items = llm.extractActionItems(result.transcript)
+                if (items.isNotEmpty()) {
+                    val itemsJson = JSONArray().also { arr ->
+                        items.forEach { t ->
+                            arr.put(JSONObject().apply {
+                                put("text", t)
+                                put("sentToTasks", false)
+                                put("done", false)
+                            })
+                        }
+                    }.toString()
+                    RecordingDatabase.getInstance(applicationContext)
+                        .recordingDao()
+                        .updateActionItems(recordingId, itemsJson)
+                }
+            }
 
             // Fire-and-forget: sync to Google Doc (does not affect routing outcome)
             if (prefs.googleDocWebhookUrl.isNotEmpty()) {

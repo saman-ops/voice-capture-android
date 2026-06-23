@@ -45,6 +45,17 @@
 
             </LinearLayout>
 
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_suggestions"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="💡 Vorschläge"
+                android:textSize="12sp"
+                android:textColor="@color/accent_voice_light"
+                android:background="@drawable/chip_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp" />
+
         </LinearLayout>
 
         <!-- Section label -->
@@ -105,44 +116,14 @@
 
     </LinearLayout>
 
-    <!-- Suggestions floating button -->
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btn_suggestions"
-        android:layout_width="wrap_content"
-        android:layout_height="40dp"
-        android:text="Vorschlaege"
-        android:textSize="12sp"
-        android:textColor="@color/accent_voice_light"
-        android:background="@drawable/chip_bg"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginBottom="92dp"
-        android:layout_marginEnd="100dp" />
-
-    <!-- Live recording button (above main FAB) -->
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btn_live_record"
-        android:layout_width="wrap_content"
-        android:layout_height="36dp"
-        android:text="🔴 Live"
-        android:textSize="11sp"
-        android:textColor="@color/accent_voice_light"
-        android:background="@drawable/chip_bg"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginBottom="152dp"
-        android:layout_marginEnd="20dp" />
-
-    <!-- Record FAB -->
+    <!-- Single primary Record FAB — opens chooser (Standard / Live) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_record"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginBottom="84dp"
-        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="16dp"
         android:src="@drawable/ic_mic"
         app:backgroundTint="@color/accent_voice"
         app:tint="@color/text_primary"
