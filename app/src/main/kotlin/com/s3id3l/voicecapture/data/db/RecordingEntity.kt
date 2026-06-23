@@ -16,7 +16,11 @@ data class RecordingEntity(
     val errorMessage: String? = null,
     val durationMs: Long = 0,
     val createdAt: Long = System.currentTimeMillis(),
-    val deletedAt: Long = 0   // 0 = active, >0 = soft-deleted (epoch ms)
+    val deletedAt: Long = 0,   // 0 = active, >0 = soft-deleted (epoch ms)
+    val liveSummarySimple: String = "",
+    val liveSummaryDeep: String = "",   // JSON-Array: [{"label":"00:00","text":"..."}]
+    val liveActionItems: String = "",   // JSON-Array: ["• Task 1", "• Task 2"]
+    val isLiveSession: Boolean = false
 ) {
     companion object {
         const val STATUS_PENDING    = "pending"

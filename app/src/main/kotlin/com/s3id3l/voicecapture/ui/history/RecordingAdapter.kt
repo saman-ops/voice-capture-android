@@ -34,7 +34,13 @@ class RecordingAdapter(
             val s = item.durationMs / 1000
             if (s < 60) "${s}s" else "%d:%02ds".format(s / 60, s % 60)
         } else ""
-        holder.b.tvFormat.text = item.format.replaceFirstChar { it.uppercase() }
+        if (item.isLiveSession) {
+            holder.b.tvFormat.text = "🔴 Live"
+            holder.b.tvFormat.setTextColor(0xFFEF4444.toInt())
+        } else {
+            holder.b.tvFormat.text = item.format.replaceFirstChar { it.uppercase() }
+            holder.b.tvFormat.setTextColor(0xFF6B7280.toInt())
+        }
         val selected = item.id in selectedIds
         holder.b.tvStatus.text = if (selected) "✓" else when (item.status) {
             RecordingEntity.STATUS_DONE       -> "✅"

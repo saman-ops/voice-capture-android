@@ -24,6 +24,7 @@ import com.s3id3l.voicecapture.data.db.RecordingEntity
 import com.s3id3l.voicecapture.databinding.ActivityDetailBinding
 import com.s3id3l.voicecapture.databinding.BottomSheetChatBinding
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -319,6 +320,44 @@ class DetailActivity : AppCompatActivity() {
                     b.etOutput.setText(rec.formattedOutput)
                 }
                 b.tvTranscript.text = rec.transcript.ifEmpty { "(kein Transkript)" }
+
+                // Live-session sections
+                b.liveSessionSection.visibility = if (rec.isLiveSession) View.VISIBLE else View.GONE
+                if (rec.isLiveSession) {
+                    if (rec.liveSummarySimple.isNotEmpty()) {
+                        b.simpleSummaryContent.text = rec.liveSummarySimple
+                        b.simpleSummarySection.visibility = View.VISIBLE
+                    } else {
+                        b.simpleSummarySection.visibility = View.GONE
+                    }
+                    if (rec.liveSummaryDeep.isNotEmpty() && rec.liveSummaryDeep != "[]") {
+                        try {
+                            val arr = JSONArray(rec.liveSummaryDeep)
+                            val deepText = (0 until arr.length()).joinToString("\n\n─────\n\n") { i ->
+                                val obj = arr.getJSONObject(i)
+                                "⏱ ${obj.getString("label")}\n${obj.getString("text")}"
+                            }
+                            b.deepSummaryContent.text = deepText
+                            b.deepSummarySection.visibility = View.VISIBLE
+                        } catch (_: Exception) {
+                            b.deepSummarySection.visibility = View.GONE
+                        }
+                    } else {
+                        b.deepSummarySection.visibility = View.GONE
+                    }
+                    if (rec.liveActionItems.isNotEmpty() && rec.liveActionItems != "[]") {
+                        try {
+                            val arr = JSONArray(rec.liveActionItems)
+                            val itemsText = (0 until arr.length()).joinToString("\n") { arr.getString(it) }
+                            b.actionItemsContent.text = itemsText
+                            b.actionItemsSection.visibility = View.VISIBLE
+                        } catch (_: Exception) {
+                            b.actionItemsSection.visibility = View.GONE
+                        }
+                    } else {
+                        b.actionItemsSection.visibility = View.GONE
+                    }
+                }
 
                 val audioFile = rec.audioPath?.let { File(it) }
                 if (audioFile != null && audioFile.exists()) {

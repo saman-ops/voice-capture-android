@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.s3id3l.voicecapture.data.PrefsManager
+import com.s3id3l.voicecapture.data.db.RecordingDatabase
+import com.s3id3l.voicecapture.data.db.RecordingEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -14,6 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 
 class LiveViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -78,6 +82,51 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
         recognizer?.stop()
         recognizer = null
         _state.update { it.copy(isRecording = false, partialText = "") }
+
+        val text = accumulatedText.toString().trim()
+        if (text.isBlank()) return
+
+        val snapshot = _state.value
+        viewModelScope.launch(Dispatchers.IO) {
+            val db = RecordingDatabase.getInstance(getApplication())
+            val title = text.split(Regex("[.!?]")).firstOrNull()?.trim()?.take(60) ?: "Live-Aufnahme"
+
+            val deepJson = JSONArray().also { arr ->
+                snapshot.blockSummaries.forEach { (label, summary) ->
+                    arr.put(JSONObject().put("label", label).put("text", summary))
+                }
+            }.toString()
+
+            val itemsJson = JSONArray().also { arr ->
+                snapshot.actionItems.forEach { item -> arr.put(item.text) }
+            }.toString()
+
+            val formattedOutput = snapshot.summary.ifEmpty {
+                if (snapshot.blockSummaries.isNotEmpty())
+                    snapshot.blockSummaries.joinToString("\n\n") { (l, s) -> "⏱ $l\n$s" }
+                else text.take(500)
+            }
+
+            val id = db.recordingDao().insert(
+                RecordingEntity(
+                    title = title,
+                    transcript = text,
+                    formattedOutput = formattedOutput,
+                    status = RecordingEntity.STATUS_DONE,
+                    isLiveSession = true
+                )
+            )
+            db.recordingDao().updateLiveDone(
+                id = id,
+                transcript = text,
+                output = formattedOutput,
+                title = title,
+                simple = snapshot.summary,
+                deep = deepJson,
+                items = itemsJson,
+                status = RecordingEntity.STATUS_DONE
+            )
+        }
     }
 
     fun setMode(mode: TranscriptionMode) {

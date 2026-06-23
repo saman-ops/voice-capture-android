@@ -50,4 +50,12 @@ interface RecordingDao {
 
     @Query("UPDATE recordings SET title=:title WHERE id=:id")
     suspend fun updateTitle(id: Long, title: String)
+
+    @Query("""UPDATE recordings SET
+        transcript=:transcript, formattedOutput=:output, title=:title,
+        liveSummarySimple=:simple, liveSummaryDeep=:deep, liveActionItems=:items,
+        status=:status, isLiveSession=1
+        WHERE id=:id""")
+    suspend fun updateLiveDone(id: Long, transcript: String, output: String, title: String,
+        simple: String, deep: String, items: String, status: String)
 }
