@@ -19,13 +19,16 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.chip.Chip
 import com.google.android.material.snackbar.Snackbar
+import com.s3id3l.voicecapture.data.GoogleTasksSender
 import com.s3id3l.voicecapture.data.PrefsManager
 import com.s3id3l.voicecapture.data.db.RecordingDatabase
 import com.s3id3l.voicecapture.data.db.RecordingEntity
 import com.s3id3l.voicecapture.databinding.ActivityDetailBinding
 import com.s3id3l.voicecapture.databinding.BottomSheetChatBinding
+import com.s3id3l.voicecapture.util.MarkdownFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.io.File
 import java.text.SimpleDateFormat
@@ -44,6 +47,7 @@ class DetailActivity : AppCompatActivity() {
     private lateinit var detailActionAdapter: DetailActionItemAdapter
     private var currentRecordingId: Long = -1
     private var currentActionItems: MutableList<DetailActionItem> = mutableListOf()
+    private val prefs by lazy { PrefsManager(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +76,15 @@ class DetailActivity : AppCompatActivity() {
             b.transcriptChevron.rotation = if (visible) 0f else 180f
         }
 
+        b.btnCopyTranscript.setOnClickListener {
+            val rec = vm.recording.value ?: return@setOnClickListener
+            copyToClipboard("Transkript", rec.transcript)
+        }
+        b.btnCopyAll.setOnClickListener {
+            val rec = vm.recording.value ?: return@setOnClickListener
+            copyToClipboard("Alle Artefakte", buildAllArtifacts(rec))
+        }
+
         b.titleEditable.setOnEditorActionListener { _, action, _ ->
             if (action == EditorInfo.IME_ACTION_DONE) {
                 vm.saveTitle(b.titleEditable.text.toString())
@@ -81,41 +94,101 @@ class DetailActivity : AppCompatActivity() {
     }
 
     private fun setupDetailActionItems() {
-        detailActionAdapter = DetailActionItemAdapter { index, _ ->
-            if (index < currentActionItems.size) {
-                currentActionItems[index] = currentActionItems[index].copy(sentToTasks = true)
-                detailActionAdapter.submitList(currentActionItems.toList())
-                if (currentRecordingId > 0) {
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        RecordingDatabase.getInstance(applicationContext)
-                            .recordingDao()
-                            .updateActionItems(currentRecordingId, serializeDetailActionItems(currentActionItems))
-                    }
-                }
-            }
-        }
+        detailActionAdapter = DetailActionItemAdapter { _, item -> sendSingleItemToTasks(item) }
         b.rvDetailActionItems.layoutManager = LinearLayoutManager(this)
         b.rvDetailActionItems.adapter = detailActionAdapter
 
-        b.btnTasksAllDetail.setOnClickListener {
-            var changed = false
-            currentActionItems.forEachIndexed { i, item ->
-                if (!item.sentToTasks) {
-                    DetailActionItemAdapter.openGoogleTasks(this, item.text)
-                    currentActionItems[i] = item.copy(sentToTasks = true)
-                    changed = true
+        b.btnTasksAllDetail.setOnClickListener { sendAllItemsToTasks() }
+    }
+
+    /** Sends one item to Google Tasks via the Apps Script webhook; marks sent only on success. */
+    private fun sendSingleItemToTasks(item: DetailActionItem) {
+        val webhook = prefs.googleDocWebhookUrl
+        if (webhook.isBlank()) {
+            Snackbar.make(b.root, "Kein Google-Webhook konfiguriert (Einstellungen)", Snackbar.LENGTH_LONG).show()
+            return
+        }
+        lifecycleScope.launch {
+            val ok = withContext(Dispatchers.IO) { GoogleTasksSender.sendTask(webhook, item.text) }
+            if (ok) {
+                val pos = currentActionItems.indexOfFirst { it.text == item.text }
+                if (pos >= 0) {
+                    currentActionItems[pos] = currentActionItems[pos].copy(sentToTasks = true)
+                    detailActionAdapter.submitList(currentActionItems.toList())
+                    persistActionItems()
+                }
+                Snackbar.make(b.root, "✓ An Google Tasks gesendet", Snackbar.LENGTH_SHORT).show()
+            } else {
+                Snackbar.make(b.root, "⚠️ Fehler beim Senden an Google Tasks", Snackbar.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun sendAllItemsToTasks() {
+        val webhook = prefs.googleDocWebhookUrl
+        if (webhook.isBlank()) {
+            Snackbar.make(b.root, "Kein Google-Webhook konfiguriert (Einstellungen)", Snackbar.LENGTH_LONG).show()
+            return
+        }
+        val unsent = currentActionItems.filter { !it.sentToTasks }
+        if (unsent.isEmpty()) {
+            Snackbar.make(b.root, "Alle Items bereits gesendet", Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        lifecycleScope.launch {
+            var success = 0
+            for (item in unsent) {
+                val ok = withContext(Dispatchers.IO) { GoogleTasksSender.sendTask(webhook, item.text) }
+                if (ok) {
+                    val pos = currentActionItems.indexOfFirst { it.text == item.text }
+                    if (pos >= 0) currentActionItems[pos] = currentActionItems[pos].copy(sentToTasks = true)
+                    success++
                 }
             }
-            if (changed) {
-                detailActionAdapter.submitList(currentActionItems.toList())
-                if (currentRecordingId > 0) {
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        RecordingDatabase.getInstance(applicationContext)
-                            .recordingDao()
-                            .updateActionItems(currentRecordingId, serializeDetailActionItems(currentActionItems))
-                    }
+            detailActionAdapter.submitList(currentActionItems.toList())
+            persistActionItems()
+            Snackbar.make(b.root, "✓ $success von ${unsent.size} an Google Tasks gesendet", Snackbar.LENGTH_LONG).show()
+        }
+    }
+
+    private fun persistActionItems() {
+        if (currentRecordingId > 0) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                RecordingDatabase.getInstance(applicationContext).recordingDao()
+                    .updateActionItems(currentRecordingId, serializeDetailActionItems(currentActionItems))
+            }
+        }
+    }
+
+    private fun copyToClipboard(label: String, text: String) {
+        (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
+            .setPrimaryClip(ClipData.newPlainText(label, text))
+        Snackbar.make(b.root, "✓ $label kopiert", Snackbar.LENGTH_SHORT).show()
+    }
+
+    private fun buildAllArtifacts(rec: RecordingEntity): String = buildString {
+        appendLine("# ${rec.title.ifEmpty { "Aufnahme" }}")
+        appendLine()
+        if (rec.formattedOutput.isNotBlank()) {
+            appendLine("## Zusammenfassung"); appendLine(rec.formattedOutput); appendLine()
+        }
+        if (rec.liveSummaryDeep.isNotBlank() && rec.liveSummaryDeep != "[]") {
+            appendLine("## Tiefe Analyse")
+            runCatching {
+                val arr = JSONArray(rec.liveSummaryDeep)
+                for (i in 0 until arr.length()) {
+                    val o = arr.getJSONObject(i)
+                    appendLine("⏱ ${o.getString("label")}"); appendLine(o.getString("text")); appendLine()
                 }
             }
+        }
+        if (rec.transcript.isNotBlank()) {
+            appendLine("## Transkript"); appendLine(rec.transcript); appendLine()
+        }
+        val items = parseDetailActionItems(rec.liveActionItems)
+        if (items.isNotEmpty()) {
+            appendLine("## Action Items")
+            items.forEach { appendLine("- [${if (it.sentToTasks) "x" else " "}] ${it.text}") }
         }
     }
 
@@ -370,7 +443,7 @@ class DetailActivity : AppCompatActivity() {
                 b.liveSessionSection.visibility = if (rec.isLiveSession) View.VISIBLE else View.GONE
                 if (rec.isLiveSession) {
                     if (rec.liveSummarySimple.isNotEmpty()) {
-                        b.simpleSummaryContent.text = rec.liveSummarySimple
+                        b.simpleSummaryContent.text = MarkdownFormatter.format(rec.liveSummarySimple)
                         b.simpleSummarySection.visibility = View.VISIBLE
                     } else {
                         b.simpleSummarySection.visibility = View.GONE
@@ -382,7 +455,7 @@ class DetailActivity : AppCompatActivity() {
                                 val obj = arr.getJSONObject(i)
                                 "⏱ ${obj.getString("label")}\n${obj.getString("text")}"
                             }
-                            b.deepSummaryContent.text = deepText
+                            b.deepSummaryContent.text = MarkdownFormatter.format(deepText)
                             b.deepSummarySection.visibility = View.VISIBLE
                         } catch (_: Exception) {
                             b.deepSummarySection.visibility = View.GONE

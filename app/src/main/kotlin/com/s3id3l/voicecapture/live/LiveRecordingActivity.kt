@@ -1,9 +1,7 @@
 package com.s3id3l.voicecapture.live
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.speech.SpeechRecognizer
 import android.text.SpannableString
@@ -20,8 +18,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.s3id3l.voicecapture.data.GoogleTasksSender
+import com.s3id3l.voicecapture.data.PrefsManager
 import com.s3id3l.voicecapture.databinding.ActivityLiveRecordingBinding
+import com.s3id3l.voicecapture.util.MarkdownFormatter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class LiveRecordingActivity : AppCompatActivity() {
 
@@ -125,13 +128,21 @@ class LiveRecordingActivity : AppCompatActivity() {
                 Toast.makeText(this, "Keine Action Items vorhanden", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            items.forEach { item ->
-                val uri = Uri.Builder()
-                    .scheme("https").authority("tasks.google.com").path("/tasks/create")
-                    .appendQueryParameter("title", item.text).build()
-                startActivity(Intent(Intent.ACTION_VIEW, uri).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
+            val webhook = PrefsManager(this).googleDocWebhookUrl
+            if (webhook.isBlank()) {
+                Toast.makeText(this, "Kein Google-Webhook konfiguriert", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
             }
-            Toast.makeText(this, "${items.size} Items → Google Tasks", Toast.LENGTH_SHORT).show()
+            b.btnTasksAll.isEnabled = false
+            lifecycleScope.launch {
+                var success = 0
+                for (item in items) {
+                    val ok = withContext(Dispatchers.IO) { GoogleTasksSender.sendTask(webhook, item.text) }
+                    if (ok) success++
+                }
+                b.btnTasksAll.isEnabled = true
+                Toast.makeText(this@LiveRecordingActivity, "✓ $success von ${items.size} → Google Tasks", Toast.LENGTH_LONG).show()
+            }
         }
 
         b.actionItemsHeader.setOnClickListener { vm.toggleActionItems() }
@@ -200,17 +211,18 @@ class LiveRecordingActivity : AppCompatActivity() {
                         b.scrollTranscript.post { b.scrollTranscript.fullScroll(View.FOCUS_DOWN) }
                     }
                     TranscriptionMode.SIMPLE -> {
-                        b.tvTranscript.text = state.summary.ifEmpty {
+                        b.tvTranscript.text = if (state.summary.isEmpty())
                             "Zusammenfassung wird nach 60 Sekunden erstellt…"
-                        }
+                        else MarkdownFormatter.format(state.summary)
                     }
                     TranscriptionMode.DEEP -> {
                         if (state.blockSummaries.isEmpty()) {
                             b.tvTranscript.text = "Tiefe Analyse wird nach 90 Sekunden erstellt…"
                         } else {
-                            b.tvTranscript.text = state.blockSummaries.joinToString("\n\n─────────\n\n") { (label, summary) ->
+                            val deepText = state.blockSummaries.joinToString("\n\n─────────\n\n") { (label, summary) ->
                                 "⏱ $label\n$summary"
                             }
+                            b.tvTranscript.text = MarkdownFormatter.format(deepText)
                         }
                     }
                 }

@@ -1,14 +1,19 @@
 package com.s3id3l.voicecapture.live
 
-import android.content.Intent
 import android.graphics.Paint
-import android.net.Uri
+import android.widget.Toast
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.s3id3l.voicecapture.data.GoogleTasksSender
+import com.s3id3l.voicecapture.data.PrefsManager
 import com.s3id3l.voicecapture.databinding.ItemActionItemBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ActionItemAdapter(
     private val onToggle: (ActionItem) -> Unit,
@@ -43,10 +48,19 @@ class ActionItemAdapter(
         holder.b.btnRemoveItem.setOnClickListener { onRemove(item) }
         holder.b.btnSendTasks.setOnClickListener {
             val ctx = holder.itemView.context
-            val uri = Uri.Builder()
-                .scheme("https").authority("tasks.google.com").path("/tasks/create")
-                .appendQueryParameter("title", item.text).build()
-            ctx.startActivity(Intent(Intent.ACTION_VIEW, uri).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
+            val webhook = PrefsManager(ctx).googleDocWebhookUrl
+            holder.b.btnSendTasks.isEnabled = false
+            CoroutineScope(Dispatchers.IO).launch {
+                val ok = GoogleTasksSender.sendTask(webhook, item.text)
+                withContext(Dispatchers.Main) {
+                    holder.b.btnSendTasks.isEnabled = true
+                    Toast.makeText(
+                        ctx,
+                        if (ok) "✓ An Google Tasks gesendet" else "⚠️ Fehler beim Senden",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
         }
     }
 

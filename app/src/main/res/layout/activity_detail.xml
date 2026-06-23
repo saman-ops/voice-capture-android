@@ -265,6 +265,19 @@
                     android:textSize="11sp"
                     android:fontFamily="sans-serif-medium" />
 
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_copy_transcript"
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:minWidth="0dp"
+                    android:text="⧉ Kopieren"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_secondary"
+                    android:background="@drawable/chip_bg"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:layout_marginEnd="10dp" />
+
                 <TextView
                     android:id="@+id/transcript_chevron"
                     android:layout_width="wrap_content"
@@ -402,6 +415,18 @@
                 </LinearLayout>
 
             </LinearLayout>
+
+            <!-- Alle Artefakte kopieren -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_copy_all"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:text="⧉  Alle Artefakte kopieren"
+                android:textColor="@color/text_secondary"
+                android:background="@drawable/chip_bg"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginBottom="20dp" />
 
             <!-- KI-Aktionen: Chat + Prompt Builder nebeneinander -->
             <LinearLayout
