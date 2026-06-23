@@ -13,7 +13,8 @@
         android:text="Prompt Builder"
         android:textColor="#F9FAFB"
         android:textSize="18sp"
-        android:fontFamily="sans-serif-bold"
+        android:fontFamily="sans-serif-medium"
+        android:textStyle="bold"
         android:layout_marginBottom="8dp" />
 
     <TextView

@@ -18,18 +18,26 @@ class HistoryViewModel(app: Application) : AndroidViewModel(app) {
     private val _showTrash   = MutableStateFlow(false)
     private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
     private val _merging     = MutableStateFlow(false)
+    private val _searchQuery = MutableStateFlow("")
 
     val showTrash:   StateFlow<Boolean>     = _showTrash
     val selectedIds: StateFlow<Set<Long>>   = _selectedIds
     val merging:     StateFlow<Boolean>     = _merging
+    val searchQuery: StateFlow<String>      = _searchQuery
 
     val recordings: StateFlow<List<RecordingEntity>> = combine(
         db.recordingDao().getAllFlow(),
         _filter,
-        _showTrash
-    ) { list, f, trash ->
-        if (trash) emptyList()
-        else if (f == "all") list else list.filter { it.status == f }
+        _showTrash,
+        _searchQuery
+    ) { list, f, trash, query ->
+        if (trash) return@combine emptyList<RecordingEntity>()
+        val byStatus = if (f == "all") list else list.filter { it.status == f }
+        val q = query.trim().lowercase()
+        if (q.isEmpty()) byStatus
+        else byStatus.filter {
+            it.title.lowercase().contains(q) || it.transcript.lowercase().contains(q)
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val trashRecordings: StateFlow<List<RecordingEntity>> =
@@ -37,6 +45,7 @@ class HistoryViewModel(app: Application) : AndroidViewModel(app) {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setFilter(f: String)    { _filter.value = f }
+    fun setSearchQuery(q: String) { _searchQuery.value = q }
     fun toggleTrash()           { _showTrash.value = !_showTrash.value; clearSelection() }
 
     fun toggleSelection(id: Long) {

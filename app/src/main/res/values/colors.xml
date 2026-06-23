@@ -21,4 +21,19 @@
     <!-- Borders -->
     <color name="border">#2D3748</color>
     <color name="border_accent">#4F46E5</color>
+
+    <!-- Advisor cards (PM Coach / Workflow / Berater) -->
+    <color name="accent_pm_coach">#10B981</color>
+    <color name="accent_workflow">#818CF8</color>
+    <color name="accent_berater">#F59E0B</color>
+    <color name="surface_pm_coach">#1A2A1A</color>
+    <color name="surface_workflow">#1A1A2A</color>
+    <color name="surface_berater">#2A1A1A</color>
+    <color name="stroke_pm_coach">#2E5E2E</color>
+    <color name="stroke_workflow">#2E2E5E</color>
+    <color name="stroke_berater">#5E2E2E</color>
+    <color name="text_pm_coach">#7FBF7F</color>
+    <color name="text_workflow">#9999EF</color>
+    <color name="text_berater">#EF9999</color>
+    <color name="hint_pm_coach">#3A5E3A</color>
 </resources>

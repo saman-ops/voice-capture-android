@@ -12,7 +12,8 @@
         android:text="💡 Verbesserungsvorschläge"
         android:textColor="#F9FAFB"
         android:textSize="17sp"
-        android:fontFamily="sans-serif-bold"
+        android:fontFamily="sans-serif-medium"
+        android:textStyle="bold"
         android:layout_marginBottom="4dp" />
 
     <TextView

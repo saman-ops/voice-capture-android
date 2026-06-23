@@ -1,10 +1,13 @@
 package com.s3id3l.voicecapture.ui.history
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.s3id3l.voicecapture.R
 import com.s3id3l.voicecapture.data.db.RecordingEntity
 import com.s3id3l.voicecapture.databinding.ItemRecordingBinding
 import java.text.SimpleDateFormat
@@ -18,6 +21,10 @@ class RecordingAdapter(
     var selectedIds: Set<Long> = emptySet()
         set(value) { field = value; notifyDataSetChanged() }
 
+    /** When false (e.g. trash view), date-group headers are hidden. */
+    var groupingEnabled: Boolean = true
+        set(value) { field = value; notifyDataSetChanged() }
+
     inner class VH(val b: ItemRecordingBinding) : RecyclerView.ViewHolder(b.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
@@ -25,6 +32,19 @@ class RecordingAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = getItem(position)
+        val ctx = holder.b.root.context
+
+        // Date-group header (Heute / Gestern / Diese Woche / Älter)
+        val label = groupLabel(item.createdAt)
+        val showHeader = groupingEnabled &&
+            (position == 0 || groupLabel(getItem(position - 1).createdAt) != label)
+        if (showHeader) {
+            holder.b.tvDateGroup.text = label
+            holder.b.tvDateGroup.visibility = View.VISIBLE
+        } else {
+            holder.b.tvDateGroup.visibility = View.GONE
+        }
+
         holder.b.tvTitle.text = item.title.ifEmpty { "Aufnahme" }
         val date = Date(item.createdAt)
         val dayFmt = SimpleDateFormat("EEE", Locale.GERMANY)
@@ -36,10 +56,10 @@ class RecordingAdapter(
         } else ""
         if (item.isLiveSession) {
             holder.b.tvFormat.text = "🔴 Live"
-            holder.b.tvFormat.setTextColor(0xFFEF4444.toInt())
+            holder.b.tvFormat.setTextColor(ContextCompat.getColor(ctx, R.color.accent_red))
         } else {
             holder.b.tvFormat.text = item.format.replaceFirstChar { it.uppercase() }
-            holder.b.tvFormat.setTextColor(0xFF6B7280.toInt())
+            holder.b.tvFormat.setTextColor(ContextCompat.getColor(ctx, R.color.text_muted))
         }
         val actionCount = countActionItems(item.liveActionItems)
         if (actionCount > 0) {
@@ -65,6 +85,23 @@ class RecordingAdapter(
     private fun countActionItems(json: String): Int {
         if (json.isBlank() || json == "[]") return 0
         return try { org.json.JSONArray(json).length() } catch (_: Exception) { 0 }
+    }
+
+    private fun groupLabel(timestamp: Long): String {
+        val now = Calendar.getInstance()
+        val item = Calendar.getInstance().apply { timeInMillis = timestamp }
+
+        fun sameDay(a: Calendar, b: Calendar) =
+            a.get(Calendar.YEAR) == b.get(Calendar.YEAR) &&
+            a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR)
+
+        val yesterday = (now.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -1) }
+        return when {
+            sameDay(item, now) -> "Heute"
+            sameDay(item, yesterday) -> "Gestern"
+            now.timeInMillis - timestamp <= 7L * 24 * 60 * 60 * 1000 -> "Diese Woche"
+            else -> "Älter"
+        }
     }
 
     companion object {

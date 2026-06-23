@@ -2,6 +2,8 @@ package com.s3id3l.voicecapture.ui.history
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -53,6 +55,15 @@ class HistoryFragment : Fragment() {
         b.recyclerHistory.layoutManager = LinearLayoutManager(requireContext())
         b.recyclerHistory.adapter = adapter
 
+        // Search
+        b.etSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                vm.setSearchQuery(s?.toString() ?: "")
+            }
+        })
+
         // Filter chips (active only when not in trash)
         listOf(
             "all"                             to "Alle",
@@ -95,6 +106,10 @@ class HistoryFragment : Fragment() {
             vm.showTrash.collect { inTrash ->
                 b.btnTrash.text = if (inTrash) "← Verlauf" else "🗑 Papierkorb"
                 b.filterChips.visibility = if (inTrash) View.GONE else View.VISIBLE
+                b.filterScroll.visibility = if (inTrash) View.GONE else View.VISIBLE
+                b.etSearch.visibility = if (inTrash) View.GONE else View.VISIBLE
+                // Date-group headers only make sense in the active (createdAt-sorted) view
+                adapter.groupingEnabled = !inTrash
                 // Push the correct list immediately when the view switches
                 if (inTrash) {
                     val list = vm.trashRecordings.value

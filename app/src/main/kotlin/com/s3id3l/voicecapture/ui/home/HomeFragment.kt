@@ -39,6 +39,7 @@ class HomeFragment : Fragment() {
                     .putExtra(DetailActivity.EXTRA_ID, rec.id)
             )
         })
+        adapter.groupingEnabled = false   // Home shows a short recent list — no date headers
         b.recyclerRecent.layoutManager = LinearLayoutManager(requireContext())
         b.recyclerRecent.adapter = adapter
 

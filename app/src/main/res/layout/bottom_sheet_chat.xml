@@ -12,7 +12,8 @@
         android:text="KI-Chat"
         android:textColor="#F9FAFB"
         android:textSize="16sp"
-        android:fontFamily="sans-serif-bold"
+        android:fontFamily="sans-serif-medium"
+        android:textStyle="bold"
         android:padding="16dp"
         android:paddingBottom="8dp" />
 
