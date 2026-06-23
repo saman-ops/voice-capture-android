@@ -78,6 +78,62 @@ class LiveSummarizationEngine(
         return if (raw == "\"\"" || raw.isBlank()) "" else raw.trim('"')
     }
 
+    fun workflowSuggestion(
+        recentTranscript: String,
+        actionItemsSoFar: List<String> = emptyList(),
+        sessionMinutes: Int = 0,
+        previousSuggestions: List<String> = emptyList()
+    ): String {
+        val prevCtx = if (previousSuggestions.isNotEmpty())
+            "\nBereits gegeben (nicht wiederholen):\n${previousSuggestions.takeLast(3).joinToString("\n") { "- $it" }}"
+        else ""
+        val actionCtx = if (actionItemsSoFar.isNotEmpty())
+            "\nAction Items bisher:\n${actionItemsSoFar.joinToString("\n") { "• $it" }}"
+        else ""
+        val raw = callClaude(
+            system = "Du bist Workflow Manager in einem Meeting bei Frequentis (Public Safety Communications).\n" +
+                "Analysiere den Gesprächsverlauf auf Prozess-Lücken.\n\n" +
+                "Fokus auf:\n" +
+                "- Unklare Verantwortlichkeiten (Wer macht das?)\n" +
+                "- Fehlende Deadlines oder Meilensteine\n" +
+                "- Abhängigkeiten die nicht adressiert wurden\n" +
+                "- Eskalationsbedarf oder fehlende Freigaben\n" +
+                "- Prozess-Schritte die übersprungen wurden\n\n" +
+                "Format: \"⚙️ [max 12 Wörter, Deutsch, konkret]\"\n" +
+                "Kein relevanter Moment: Antworte mit exakt \"\"" + prevCtx + actionCtx,
+            user = recentTranscript,
+            maxTokens = 80
+        )
+        return if (raw == "\"\"" || raw.isBlank()) "" else raw.trim('"')
+    }
+
+    fun strategicAdvisorSuggestion(
+        recentTranscript: String,
+        actionItemsSoFar: List<String> = emptyList(),
+        sessionMinutes: Int = 0,
+        previousSuggestions: List<String> = emptyList()
+    ): String {
+        val prevCtx = if (previousSuggestions.isNotEmpty())
+            "\nBereits gegeben (nicht wiederholen):\n${previousSuggestions.takeLast(3).joinToString("\n") { "- $it" }}"
+        else ""
+        val durationCtx = if (sessionMinutes > 0) "\nMeeting-Dauer: $sessionMinutes Minuten" else ""
+        val raw = callClaude(
+            system = "Du bist strategischer KI-Berater für Juergen, PM bei Frequentis (Public Safety: Leitstellen, TETRA, MCX, FirstNet).\n" +
+                "Gib eine strategische Einschätzung zum Gesprächsverlauf.\n\n" +
+                "Fokus auf:\n" +
+                "- Politische Dynamiken oder Widerstände die sich abzeichnen\n" +
+                "- Strategische Opportunities die nicht genutzt werden\n" +
+                "- Risiken für das Projekt/Produkt die erwähnt wurden\n" +
+                "- Verbindungen zu größeren Unternehmenszielen\n" +
+                "- Stakeholder die einbezogen werden sollten aber nicht da sind\n\n" +
+                "Format: \"💡 [max 14 Wörter, Deutsch, strategisch]\"\n" +
+                "Kein relevanter Moment: Antworte mit exakt \"\"" + prevCtx + durationCtx,
+            user = recentTranscript,
+            maxTokens = 80
+        )
+        return if (raw == "\"\"" || raw.isBlank()) "" else raw.trim('"')
+    }
+
     private fun callClaude(system: String, user: String, maxTokens: Int): String {
         val body = JSONObject().apply {
             put("model", MODEL)

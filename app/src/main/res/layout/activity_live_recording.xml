@@ -157,63 +157,204 @@
         android:clipToPadding="false"
         android:paddingBottom="4dp" />
 
-    <!-- PM Coach card -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/card_coach"
+    <!-- Advisor Panel — 3 autonome Agenten -->
+    <LinearLayout
+        android:id="@+id/advisor_panel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="6dp"
-        android:layout_marginBottom="4dp"
-        app:cardBackgroundColor="#1C1E3A"
-        app:cardCornerRadius="10dp"
-        app:strokeColor="#3F3F8A"
-        app:strokeWidth="1dp"
-        android:clickable="true"
-        android:focusable="true"
+        android:orientation="vertical"
         android:visibility="gone">
 
-        <LinearLayout
+        <!-- PM Coach card (grün) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_pm_coach"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingStart="14dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="10dp"
-            android:paddingBottom="10dp">
-
-            <TextView
-                android:id="@+id/tv_coach_suggestion"
-                android:layout_width="0dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="2dp"
+            app:cardBackgroundColor="#1A2A1A"
+            app:cardCornerRadius="8dp"
+            app:strokeColor="#2E5E2E"
+            app:strokeWidth="1dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone">
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textColor="@color/accent_voice_light"
-                android:textSize="13sp"
-                android:lineSpacingMultiplier="1.3" />
+                android:orientation="vertical">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="6dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="4dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🎯"
+                        android:textSize="13sp"
+                        android:layout_marginEnd="8dp" />
+                    <TextView
+                        android:id="@+id/tv_pm_coach"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="#7FBF7F"
+                        android:textSize="12sp"
+                        android:lineSpacingMultiplier="1.2" />
+                    <ImageButton
+                        android:id="@+id/btn_dismiss_pm_coach"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        android:background="@android:color/transparent"
+                        android:tint="@color/text_muted"
+                        android:contentDescription="Schließen" />
+                </LinearLayout>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Tippen → Als Action Item"
+                    android:textColor="#3A5E3A"
+                    android:textSize="9sp"
+                    android:paddingStart="12dp"
+                    android:paddingBottom="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-            <ImageButton
-                android:id="@+id/btn_dismiss_coach"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@android:drawable/ic_menu_close_clear_cancel"
-                android:background="@android:color/transparent"
-                android:tint="@color/text_muted"
-                android:contentDescription="Schließen" />
-
-        </LinearLayout>
-
-        <TextView
+        <!-- Workflow Manager card (blau) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_workflow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Tippen → Als Action Item"
-            android:textColor="#5B5E9A"
-            android:textSize="10sp"
-            android:paddingStart="14dp"
-            android:paddingBottom="8dp" />
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="2dp"
+            app:cardBackgroundColor="#1A1A2A"
+            app:cardCornerRadius="8dp"
+            app:strokeColor="#2E2E5E"
+            app:strokeWidth="1dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="6dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="4dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚙️"
+                        android:textSize="13sp"
+                        android:layout_marginEnd="8dp" />
+                    <TextView
+                        android:id="@+id/tv_workflow"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="#9999EF"
+                        android:textSize="12sp"
+                        android:lineSpacingMultiplier="1.2" />
+                    <ImageButton
+                        android:id="@+id/btn_dismiss_workflow"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        android:background="@android:color/transparent"
+                        android:tint="@color/text_muted"
+                        android:contentDescription="Schließen" />
+                </LinearLayout>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Tippen → Als Action Item"
+                    android:textColor="#2E2E5E"
+                    android:textSize="9sp"
+                    android:paddingStart="12dp"
+                    android:paddingBottom="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-    </com.google.android.material.card.MaterialCardView>
+        <!-- Strategischer Berater card (rot) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_berater"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="6dp"
+            app:cardBackgroundColor="#2A1A1A"
+            app:cardCornerRadius="8dp"
+            app:strokeColor="#5E2E2E"
+            app:strokeWidth="1dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="6dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="4dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="💡"
+                        android:textSize="13sp"
+                        android:layout_marginEnd="8dp" />
+                    <TextView
+                        android:id="@+id/tv_berater"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="#EF9999"
+                        android:textSize="12sp"
+                        android:lineSpacingMultiplier="1.2" />
+                    <ImageButton
+                        android:id="@+id/btn_dismiss_berater"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        android:background="@android:color/transparent"
+                        android:tint="@color/text_muted"
+                        android:contentDescription="Schließen" />
+                </LinearLayout>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Tippen → Als Action Item"
+                    android:textColor="#5E2E2E"
+                    android:textSize="9sp"
+                    android:paddingStart="12dp"
+                    android:paddingBottom="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
 
     <!-- Divider -->
     <View
@@ -297,18 +438,18 @@
             android:layout_marginStart="6dp"
             android:visibility="gone" />
 
-        <!-- Coach Toggle -->
+        <!-- Advisor Panel Toggle -->
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_coach_toggle"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
-            android:text="🎯"
+            android:text="👥"
             android:textSize="14sp"
             android:background="@drawable/chip_bg"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
             android:layout_marginStart="6dp"
-            android:alpha="0.45" />
+            android:alpha="1.0" />
 
         <!-- Stop -->
         <androidx.appcompat.widget.AppCompatButton

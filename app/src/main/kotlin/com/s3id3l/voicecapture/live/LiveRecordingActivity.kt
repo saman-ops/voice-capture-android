@@ -75,7 +75,6 @@ class LiveRecordingActivity : AppCompatActivity() {
         b.recyclerActionItems.adapter = actionAdapter
         b.recyclerActionItems.isNestedScrollingEnabled = true
 
-        // Swipe to remove
         ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
             override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, t: RecyclerView.ViewHolder) = false
             override fun onSwiped(vh: RecyclerView.ViewHolder, direction: Int) {
@@ -118,13 +117,6 @@ class LiveRecordingActivity : AppCompatActivity() {
                 .show()
         }
 
-        b.btnDismissCoach.setOnClickListener { vm.dismissCoach() }
-
-        b.cardCoach.setOnClickListener {
-            vm.acceptCoachSuggestion()
-            Toast.makeText(this, "✓ Als Action Item hinzugefügt", Toast.LENGTH_SHORT).show()
-        }
-
         b.btnSummarizeNow.setOnClickListener { vm.triggerSummaryNow() }
 
         b.btnTasksAll.setOnClickListener {
@@ -144,7 +136,29 @@ class LiveRecordingActivity : AppCompatActivity() {
 
         b.actionItemsHeader.setOnClickListener { vm.toggleActionItems() }
 
-        b.btnCoachToggle.setOnClickListener { vm.toggleCoach() }
+        // Advisor panel toggle
+        b.btnCoachToggle.setOnClickListener { vm.toggleAdvisorPanel() }
+
+        // PM Coach card
+        b.cardPmCoach.setOnClickListener {
+            vm.acceptAdvisorSuggestion(AdvisorType.PM_COACH)
+            Toast.makeText(this, "✓ Als Action Item hinzugefügt", Toast.LENGTH_SHORT).show()
+        }
+        b.btnDismissPmCoach.setOnClickListener { vm.dismissAdvisor(AdvisorType.PM_COACH) }
+
+        // Workflow card
+        b.cardWorkflow.setOnClickListener {
+            vm.acceptAdvisorSuggestion(AdvisorType.WORKFLOW)
+            Toast.makeText(this, "✓ Als Action Item hinzugefügt", Toast.LENGTH_SHORT).show()
+        }
+        b.btnDismissWorkflow.setOnClickListener { vm.dismissAdvisor(AdvisorType.WORKFLOW) }
+
+        // Berater card
+        b.cardBerater.setOnClickListener {
+            vm.acceptAdvisorSuggestion(AdvisorType.BERATER)
+            Toast.makeText(this, "✓ Als Action Item hinzugefügt", Toast.LENGTH_SHORT).show()
+        }
+        b.btnDismissBerater.setOnClickListener { vm.dismissAdvisor(AdvisorType.BERATER) }
     }
 
     private fun observeState() {
@@ -183,7 +197,6 @@ class LiveRecordingActivity : AppCompatActivity() {
                             )
                             b.tvTranscript.text = spannable
                         }
-                        // Auto-scroll to bottom in original mode
                         b.scrollTranscript.post { b.scrollTranscript.fullScroll(View.FOCUS_DOWN) }
                     }
                     TranscriptionMode.SIMPLE -> {
@@ -212,16 +225,24 @@ class LiveRecordingActivity : AppCompatActivity() {
                 b.btnSummarizeNow.isEnabled = !state.summarizing
                 b.btnSummarizeNow.text = if (state.summarizing) "..." else "⚡ Jetzt"
 
-                // Coach toggle button
-                b.btnCoachToggle.alpha = if (state.coachEnabled) 1.0f else 0.5f
+                // Advisor panel
+                val suggestions = state.advisorSuggestions
+                val panelVisible = state.advisorPanelVisible
+                val anyActive = suggestions.isNotEmpty()
+                b.advisorPanel.visibility = if (anyActive && panelVisible) View.VISIBLE else View.GONE
+                b.btnCoachToggle.alpha = if (panelVisible) 1.0f else 0.45f
 
-                // PM Coach card — only visible when coach is enabled and has suggestion
-                if (state.coachEnabled && state.coachSuggestion.isNotEmpty()) {
-                    b.cardCoach.visibility = View.VISIBLE
-                    b.tvCoachSuggestion.text = state.coachSuggestion
-                } else {
-                    b.cardCoach.visibility = View.GONE
-                }
+                val pmSuggestion = suggestions[AdvisorType.PM_COACH]
+                b.cardPmCoach.visibility = if (pmSuggestion != null) View.VISIBLE else View.GONE
+                pmSuggestion?.let { b.tvPmCoach.text = it.text }
+
+                val workflowSuggestion = suggestions[AdvisorType.WORKFLOW]
+                b.cardWorkflow.visibility = if (workflowSuggestion != null) View.VISIBLE else View.GONE
+                workflowSuggestion?.let { b.tvWorkflow.text = it.text }
+
+                val beraterSuggestion = suggestions[AdvisorType.BERATER]
+                b.cardBerater.visibility = if (beraterSuggestion != null) View.VISIBLE else View.GONE
+                beraterSuggestion?.let { b.tvBerater.text = it.text }
             }
         }
     }

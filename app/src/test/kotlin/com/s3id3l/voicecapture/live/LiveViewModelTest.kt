@@ -26,7 +26,7 @@ class LiveViewModelTest {
         assertEquals("", state.summary)
         assertTrue(state.blockSummaries.isEmpty())
         assertTrue(state.actionItems.isEmpty())
-        assertEquals("", state.coachSuggestion)
+        assertTrue(state.advisorSuggestions.isEmpty())
         assertFalse(state.isRecording)
         assertFalse(state.summarizing)
     }
@@ -60,10 +60,11 @@ class LiveViewModelTest {
     }
 
     @Test
-    fun `dismissCoach clears suggestion`() {
-        var state = LiveState(coachSuggestion = "💡 Nach Datum fragen")
-        state = state.copy(coachSuggestion = "")
-        assertEquals("", state.coachSuggestion)
+    fun `dismissAdvisor removes suggestion from map`() {
+        val suggestion = AdvisorSuggestion(AdvisorType.PM_COACH, "🎯 Nach Datum fragen")
+        var state = LiveState(advisorSuggestions = mapOf(AdvisorType.PM_COACH to suggestion))
+        state = state.copy(advisorSuggestions = state.advisorSuggestions - AdvisorType.PM_COACH)
+        assertTrue(state.advisorSuggestions.isEmpty())
     }
 
     @Test

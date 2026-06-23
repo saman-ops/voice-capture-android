@@ -31,21 +31,28 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
     private val accumulatedText = StringBuilder()
     private var lastSummaryAt = 0L
     private var lastActionItemsAt = 0L
-    private var lastCoachAt = 0L
+    private var lastPmCoachAt = 0L
+    private var lastWorkflowAt = 0L
+    private var lastBeraterAt = 0L
     private var timerJob: Job? = null
     private var schedulerJob: Job? = null
     private var startTime = 0L
-    private var coachDismissJob: Job? = null
-    private val previousCoachSuggestions = mutableListOf<String>()
+    private val prevPmSuggestions = mutableListOf<String>()
+    private val prevWorkflowSuggestions = mutableListOf<String>()
+    private val prevBeraterSuggestions = mutableListOf<String>()
 
     fun startLive(context: Context) {
         startTime = System.currentTimeMillis()
         accumulatedText.clear()
         lastSummaryAt = 0L
         lastActionItemsAt = 0L
-        lastCoachAt = 0L
-        previousCoachSuggestions.clear()
-        _state.update { it.copy(isRecording = true, liveText = "", partialText = "") }
+        lastPmCoachAt = 0L
+        lastWorkflowAt = 0L
+        lastBeraterAt = 0L
+        prevPmSuggestions.clear()
+        prevWorkflowSuggestions.clear()
+        prevBeraterSuggestions.clear()
+        _state.update { it.copy(isRecording = true, liveText = "", partialText = "", advisorSuggestions = emptyMap()) }
 
         recognizer = ContinuousSpeechRecognizer(context).also { rec ->
             rec.start(
@@ -73,6 +80,7 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
             while (isActive) {
                 delay(10_000)
                 checkAndSummarize()
+                checkAdvisors()
             }
         }
     }
@@ -80,7 +88,6 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
     fun stopLive() {
         timerJob?.cancel()
         schedulerJob?.cancel()
-        coachDismissJob?.cancel()
         recognizer?.stop()
         recognizer = null
         _state.update { it.copy(isRecording = false, partialText = "") }
@@ -150,54 +157,25 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(actionItems = it.actionItems.filter { ai -> ai.id != id }) }
     }
 
-    fun dismissCoach() {
-        coachDismissJob?.cancel()
-        _state.update { it.copy(coachSuggestion = "") }
-    }
-
-    fun acceptCoachSuggestion() {
-        val suggestion = _state.value.coachSuggestion.trim()
-        if (suggestion.isBlank()) return
-        val text = suggestion.removePrefix("💡").trim().trimStart('"').trimEnd('"').trim()
-        if (text.isNotBlank()) addActionItem(text)
-        dismissCoach()
-    }
-
     fun toggleActionItems() {
         _state.update { it.copy(actionItemsExpanded = !it.actionItemsExpanded) }
     }
 
-    fun toggleCoach() {
-        val nowEnabled = !_state.value.coachEnabled
-        _state.update { it.copy(
-            coachEnabled = nowEnabled,
-            coachSuggestion = if (!nowEnabled) "" else it.coachSuggestion
-        )}
-        if (nowEnabled) {
-            val words = accumulatedText.toString().split(" ").filter { it.isNotBlank() }
-            if (words.size >= 10) {
-                lastCoachAt = System.currentTimeMillis()
-                val recentText = words.takeLast(300).joinToString(" ")
-                val actionItems = _state.value.actionItems.map { it.text }
-                val sessionMinutes = (_state.value.elapsedMs / 60_000).toInt()
-                val prevSuggestions = previousCoachSuggestions.toList()
-                viewModelScope.launch(Dispatchers.IO) {
-                    try {
-                        val suggestion = engine.coachSuggestion(recentText, actionItems, sessionMinutes, prevSuggestions)
-                        if (suggestion.isNotEmpty()) {
-                            previousCoachSuggestions.add(suggestion)
-                            if (previousCoachSuggestions.size > 10) previousCoachSuggestions.removeAt(0)
-                            _state.update { it.copy(coachSuggestion = suggestion) }
-                            coachDismissJob?.cancel()
-                            coachDismissJob = viewModelScope.launch {
-                                delay(15_000)
-                                _state.update { it.copy(coachSuggestion = "") }
-                            }
-                        }
-                    } catch (_: Exception) {}
-                }
-            }
-        }
+    fun toggleAdvisorPanel() {
+        _state.update { it.copy(advisorPanelVisible = !it.advisorPanelVisible) }
+    }
+
+    fun dismissAdvisor(type: AdvisorType) {
+        _state.update { it.copy(advisorSuggestions = it.advisorSuggestions - type) }
+    }
+
+    fun acceptAdvisorSuggestion(type: AdvisorType) {
+        val suggestion = _state.value.advisorSuggestions[type] ?: return
+        val text = suggestion.text
+            .removePrefix("🎯").removePrefix("⚙️").removePrefix("💡")
+            .trim().trimStart('"').trimEnd('"').trim()
+        if (text.isNotBlank()) addActionItem(text)
+        dismissAdvisor(type)
     }
 
     fun triggerSummaryNow() {
@@ -260,9 +238,7 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
                                 summarizing = false
                             )}
                         }
-                        TranscriptionMode.ORIGINAL -> {
-                            _state.update { it.copy(summarizing = false) }
-                        }
+                        TranscriptionMode.ORIGINAL -> _state.update { it.copy(summarizing = false) }
                     }
                     val items = engine.extractActionItems(inputText)
                     if (items.isNotEmpty()) {
@@ -287,25 +263,66 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
                 } catch (_: Exception) {}
             }
         }
+    }
 
-        if (_state.value.coachEnabled && now - lastCoachAt >= 30_000L) {
-            lastCoachAt = now
-            val recentText = words.takeLast(300).joinToString(" ")
-            val actionItems = _state.value.actionItems.map { it.text }
-            val sessionMinutes = (_state.value.elapsedMs / 60_000).toInt()
-            val prevSuggestions = previousCoachSuggestions.toList()
+    private fun checkAdvisors() {
+        val now = System.currentTimeMillis()
+        val words = accumulatedText.toString().split(" ").filter { it.isNotBlank() }
+        if (words.size < 15) return
+
+        val recentText = words.takeLast(300).joinToString(" ")
+        val actionItems = _state.value.actionItems.map { it.text }
+        val sessionMinutes = (_state.value.elapsedMs / 60_000).toInt()
+
+        if (now - lastPmCoachAt >= 30_000L) {
+            lastPmCoachAt = now
+            val prev = prevPmSuggestions.toList()
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    val suggestion = engine.coachSuggestion(recentText, actionItems, sessionMinutes, prevSuggestions)
-                    if (suggestion.isNotEmpty()) {
-                        previousCoachSuggestions.add(suggestion)
-                        if (previousCoachSuggestions.size > 10) previousCoachSuggestions.removeAt(0)
-                        _state.update { it.copy(coachSuggestion = suggestion) }
-                        coachDismissJob?.cancel()
-                        coachDismissJob = viewModelScope.launch {
-                            delay(15_000)
-                            _state.update { it.copy(coachSuggestion = "") }
-                        }
+                    val s = engine.coachSuggestion(recentText, actionItems, sessionMinutes, prev)
+                    if (s.isNotEmpty()) {
+                        prevPmSuggestions.add(s)
+                        if (prevPmSuggestions.size > 10) prevPmSuggestions.removeAt(0)
+                        _state.update { st -> st.copy(
+                            advisorSuggestions = st.advisorSuggestions +
+                                (AdvisorType.PM_COACH to AdvisorSuggestion(AdvisorType.PM_COACH, s))
+                        )}
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+
+        if (now - lastWorkflowAt >= 45_000L) {
+            lastWorkflowAt = now
+            val prev = prevWorkflowSuggestions.toList()
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val s = engine.workflowSuggestion(recentText, actionItems, sessionMinutes, prev)
+                    if (s.isNotEmpty()) {
+                        prevWorkflowSuggestions.add(s)
+                        if (prevWorkflowSuggestions.size > 10) prevWorkflowSuggestions.removeAt(0)
+                        _state.update { st -> st.copy(
+                            advisorSuggestions = st.advisorSuggestions +
+                                (AdvisorType.WORKFLOW to AdvisorSuggestion(AdvisorType.WORKFLOW, s))
+                        )}
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+
+        if (now - lastBeraterAt >= 60_000L) {
+            lastBeraterAt = now
+            val prev = prevBeraterSuggestions.toList()
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val s = engine.strategicAdvisorSuggestion(recentText, actionItems, sessionMinutes, prev)
+                    if (s.isNotEmpty()) {
+                        prevBeraterSuggestions.add(s)
+                        if (prevBeraterSuggestions.size > 10) prevBeraterSuggestions.removeAt(0)
+                        _state.update { st -> st.copy(
+                            advisorSuggestions = st.advisorSuggestions +
+                                (AdvisorType.BERATER to AdvisorSuggestion(AdvisorType.BERATER, s))
+                        )}
                     }
                 } catch (_: Exception) {}
             }

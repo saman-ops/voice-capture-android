@@ -8,6 +8,14 @@ data class ActionItem(
 
 enum class TranscriptionMode { ORIGINAL, SIMPLE, DEEP }
 
+enum class AdvisorType { PM_COACH, WORKFLOW, BERATER }
+
+data class AdvisorSuggestion(
+    val type: AdvisorType,
+    val text: String,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 data class LiveState(
     val elapsedMs: Long = 0L,
     val mode: TranscriptionMode = TranscriptionMode.ORIGINAL,
@@ -16,9 +24,9 @@ data class LiveState(
     val summary: String = "",
     val blockSummaries: List<Pair<String, String>> = emptyList(),
     val actionItems: List<ActionItem> = emptyList(),
-    val coachSuggestion: String = "",
     val isRecording: Boolean = false,
     val summarizing: Boolean = false,
     val actionItemsExpanded: Boolean = true,
-    val coachEnabled: Boolean = false
+    val advisorSuggestions: Map<AdvisorType, AdvisorSuggestion> = emptyMap(),
+    val advisorPanelVisible: Boolean = true
 )
