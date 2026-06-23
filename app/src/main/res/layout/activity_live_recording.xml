@@ -6,16 +6,16 @@
     android:orientation="vertical"
     android:background="@color/bg_dark">
 
-    <!-- Header: Live dot, timer, stop button -->
+    <!-- Header: nur Status-Info, keine Buttons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingStart="20dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="12dp">
+        android:paddingEnd="20dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="10dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -42,34 +42,7 @@
             android:textColor="@color/text_secondary"
             android:textSize="13sp"
             android:fontFamily="sans-serif"
-            android:gravity="center"
-            android:paddingStart="12dp" />
-
-        <androidx.appcompat.widget.AppCompatButton
-            android:id="@+id/btn_coach_toggle"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="🎯 Coach"
-            android:textColor="@color/text_muted"
-            android:textSize="12sp"
-            android:fontFamily="sans-serif-medium"
-            android:background="@drawable/chip_bg"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:layout_marginEnd="8dp"
-            android:alpha="0.5" />
-
-        <androidx.appcompat.widget.AppCompatButton
-            android:id="@+id/btn_stop_live"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="■ Stop"
-            android:textColor="@color/text_primary"
-            android:textSize="12sp"
-            android:fontFamily="sans-serif-medium"
-            android:background="@drawable/chip_bg"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp" />
+            android:gravity="end" />
 
     </LinearLayout>
 
@@ -78,78 +51,6 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@color/border" />
-
-    <!-- Mode chips -->
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="4dp">
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/mode_chips"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:singleSelection="true"
-            app:selectionRequired="true">
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_original"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Original"
-                android:textColor="@color/text_secondary"
-                style="@style/Widget.MaterialComponents.Chip.Filter"
-                app:chipBackgroundColor="@color/surface"
-                app:chipStrokeColor="@color/border"
-                app:chipStrokeWidth="1dp"
-                android:checked="true" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_simple"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Einfach"
-                android:textColor="@color/text_secondary"
-                style="@style/Widget.MaterialComponents.Chip.Filter"
-                app:chipBackgroundColor="@color/surface"
-                app:chipStrokeColor="@color/border"
-                app:chipStrokeWidth="1dp" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_deep"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Tief"
-                android:textColor="@color/text_secondary"
-                style="@style/Widget.MaterialComponents.Chip.Filter"
-                app:chipBackgroundColor="@color/surface"
-                app:chipStrokeColor="@color/border"
-                app:chipStrokeWidth="1dp" />
-
-        </com.google.android.material.chip.ChipGroup>
-    </HorizontalScrollView>
-
-    <!-- On-demand summary button (hidden in ORIGINAL mode) -->
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btn_summarize_now"
-        android:layout_width="wrap_content"
-        android:layout_height="32dp"
-        android:layout_gravity="end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="2dp"
-        android:layout_marginBottom="4dp"
-        android:text="⚡ Jetzt"
-        android:textColor="@color/accent_voice"
-        android:textSize="12sp"
-        android:fontFamily="sans-serif-medium"
-        android:background="@drawable/chip_bg"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:visibility="gone" />
 
     <!-- Summarization progress -->
     <ProgressBar
@@ -161,7 +62,7 @@
         android:visibility="gone"
         style="@style/Widget.AppCompat.ProgressBar.Horizontal" />
 
-    <!-- Transcript / Summary area (fills remaining space) -->
+    <!-- Transcript / Summary area -->
     <ScrollView
         android:id="@+id/scroll_transcript"
         android:layout_width="match_parent"
@@ -185,7 +86,7 @@
 
     </ScrollView>
 
-    <!-- Divider above action items -->
+    <!-- Divider -->
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
@@ -253,7 +154,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginTop="6dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="4dp"
         app:cardBackgroundColor="#1C1E3A"
         app:cardCornerRadius="10dp"
         app:strokeColor="#3F3F8A"
@@ -291,5 +192,116 @@
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border" />
+
+    <!-- Untere Steuerleiste — alle interaktiven Buttons unten für Daumen-Erreichbarkeit -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="16dp"
+        android:background="@color/bg_dark">
+
+        <!-- Mode Chips -->
+        <HorizontalScrollView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:scrollbars="none">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/mode_chips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:singleSelection="true"
+                app:selectionRequired="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_original"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Original"
+                    android:textColor="@color/text_secondary"
+                    style="@style/Widget.MaterialComponents.Chip.Filter"
+                    app:chipBackgroundColor="@color/surface"
+                    app:chipStrokeColor="@color/border"
+                    app:chipStrokeWidth="1dp"
+                    android:checked="true" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_simple"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Einfach"
+                    android:textColor="@color/text_secondary"
+                    style="@style/Widget.MaterialComponents.Chip.Filter"
+                    app:chipBackgroundColor="@color/surface"
+                    app:chipStrokeColor="@color/border"
+                    app:chipStrokeWidth="1dp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_deep"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tief"
+                    android:textColor="@color/text_secondary"
+                    style="@style/Widget.MaterialComponents.Chip.Filter"
+                    app:chipBackgroundColor="@color/surface"
+                    app:chipStrokeColor="@color/border"
+                    app:chipStrokeWidth="1dp" />
+
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
+
+        <!-- ⚡ Jetzt — nur in Einfach/Tief Modus sichtbar -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_summarize_now"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="⚡"
+            android:textSize="14sp"
+            android:background="@drawable/chip_bg"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginStart="6dp"
+            android:visibility="gone" />
+
+        <!-- Coach Toggle -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_coach_toggle"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="🎯"
+            android:textSize="14sp"
+            android:background="@drawable/chip_bg"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginStart="6dp"
+            android:alpha="0.45" />
+
+        <!-- Stop -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_stop_live"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="■ Stop"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif-medium"
+            android:background="@drawable/chip_bg"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:layout_marginStart="6dp" />
+
+    </LinearLayout>
 
 </LinearLayout>

@@ -163,6 +163,26 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
             coachEnabled = nowEnabled,
             coachSuggestion = if (!nowEnabled) "" else it.coachSuggestion
         )}
+        if (nowEnabled) {
+            val words = accumulatedText.toString().split(" ").filter { it.isNotBlank() }
+            if (words.size >= 10) {
+                lastCoachAt = System.currentTimeMillis()
+                val recentText = words.takeLast(100).joinToString(" ")
+                viewModelScope.launch(Dispatchers.IO) {
+                    try {
+                        val suggestion = engine.coachSuggestion(recentText)
+                        if (suggestion.isNotEmpty()) {
+                            _state.update { it.copy(coachSuggestion = suggestion) }
+                            coachDismissJob?.cancel()
+                            coachDismissJob = viewModelScope.launch {
+                                delay(15_000)
+                                _state.update { it.copy(coachSuggestion = "") }
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
     }
 
     fun triggerSummaryNow() {
