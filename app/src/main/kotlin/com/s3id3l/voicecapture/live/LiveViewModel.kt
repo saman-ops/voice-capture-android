@@ -153,6 +153,50 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(coachSuggestion = "") }
     }
 
+    fun toggleActionItems() {
+        _state.update { it.copy(actionItemsExpanded = !it.actionItemsExpanded) }
+    }
+
+    fun toggleCoach() {
+        val nowEnabled = !_state.value.coachEnabled
+        _state.update { it.copy(
+            coachEnabled = nowEnabled,
+            coachSuggestion = if (!nowEnabled) "" else it.coachSuggestion
+        )}
+    }
+
+    fun triggerSummaryNow() {
+        val words = accumulatedText.toString().trim().split(" ").filter { it.isNotBlank() }
+        if (words.size < 20) return
+        if (_state.value.summarizing) return
+
+        val inputText = words.takeLast(2000).joinToString(" ")
+        val mode = _state.value.mode
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(summarizing = true) }
+            try {
+                when (mode) {
+                    TranscriptionMode.SIMPLE -> {
+                        val summary = engine.summarizeSimple(inputText)
+                        _state.update { it.copy(summary = summary, summarizing = false) }
+                    }
+                    TranscriptionMode.DEEP -> {
+                        val summary = engine.summarizeDeep(inputText)
+                        val label = formatElapsed(_state.value.elapsedMs)
+                        _state.update { s -> s.copy(
+                            blockSummaries = s.blockSummaries + (label to summary),
+                            summarizing = false
+                        )}
+                    }
+                    TranscriptionMode.ORIGINAL -> _state.update { it.copy(summarizing = false) }
+                }
+            } catch (_: Exception) {
+                _state.update { it.copy(summarizing = false) }
+            }
+        }
+    }
+
     private fun checkAndSummarize() {
         val now = System.currentTimeMillis()
         val words = accumulatedText.toString().split(" ").filter { it.isNotBlank() }
@@ -209,7 +253,7 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
 
-        if (now - lastCoachAt >= 30_000L) {
+        if (_state.value.coachEnabled && now - lastCoachAt >= 30_000L) {
             lastCoachAt = now
             val recentWords = words.takeLast(100).joinToString(" ")
             viewModelScope.launch(Dispatchers.IO) {

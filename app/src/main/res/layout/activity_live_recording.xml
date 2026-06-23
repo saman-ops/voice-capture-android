@@ -46,6 +46,20 @@
             android:paddingStart="12dp" />
 
         <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_coach_toggle"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="🎯 Coach"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif-medium"
+            android:background="@drawable/chip_bg"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginEnd="8dp"
+            android:alpha="0.5" />
+
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_stop_live"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
@@ -119,6 +133,24 @@
         </com.google.android.material.chip.ChipGroup>
     </HorizontalScrollView>
 
+    <!-- On-demand summary button (hidden in ORIGINAL mode) -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_summarize_now"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:layout_gravity="end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="4dp"
+        android:text="⚡ Jetzt"
+        android:textColor="@color/accent_voice"
+        android:textSize="12sp"
+        android:fontFamily="sans-serif-medium"
+        android:background="@drawable/chip_bg"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:visibility="gone" />
+
     <!-- Summarization progress -->
     <ProgressBar
         android:id="@+id/progress_summarizing"
@@ -161,6 +193,7 @@
 
     <!-- ACTION ITEMS section -->
     <LinearLayout
+        android:id="@+id/action_items_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -168,7 +201,19 @@
         android:paddingStart="20dp"
         android:paddingEnd="12dp"
         android:paddingTop="8dp"
-        android:paddingBottom="4dp">
+        android:paddingBottom="4dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
+
+        <TextView
+            android:id="@+id/tv_action_items_toggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="▼"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp"
+            android:layout_marginEnd="6dp" />
 
         <TextView
             android:layout_width="0dp"

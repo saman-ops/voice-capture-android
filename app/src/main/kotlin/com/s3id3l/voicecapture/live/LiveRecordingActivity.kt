@@ -117,6 +117,12 @@ class LiveRecordingActivity : AppCompatActivity() {
         }
 
         b.btnDismissCoach.setOnClickListener { vm.dismissCoach() }
+
+        b.btnSummarizeNow.setOnClickListener { vm.triggerSummaryNow() }
+
+        b.actionItemsHeader.setOnClickListener { vm.toggleActionItems() }
+
+        b.btnCoachToggle.setOnClickListener { vm.toggleCoach() }
     }
 
     private fun observeState() {
@@ -176,9 +182,19 @@ class LiveRecordingActivity : AppCompatActivity() {
 
                 // Action items
                 actionAdapter.submitList(state.actionItems.toList())
+                b.recyclerActionItems.visibility = if (state.actionItemsExpanded) View.VISIBLE else View.GONE
+                b.tvActionItemsToggle.text = if (state.actionItemsExpanded) "▼" else "▶"
 
-                // PM Coach
-                if (state.coachSuggestion.isNotEmpty()) {
+                // On-demand summary button
+                b.btnSummarizeNow.visibility = if (state.mode == TranscriptionMode.ORIGINAL) View.GONE else View.VISIBLE
+                b.btnSummarizeNow.isEnabled = !state.summarizing
+                b.btnSummarizeNow.text = if (state.summarizing) "..." else "⚡ Jetzt"
+
+                // Coach toggle button
+                b.btnCoachToggle.alpha = if (state.coachEnabled) 1.0f else 0.5f
+
+                // PM Coach card — only visible when coach is enabled and has suggestion
+                if (state.coachEnabled && state.coachSuggestion.isNotEmpty()) {
                     b.cardCoach.visibility = View.VISIBLE
                     b.tvCoachSuggestion.text = state.coachSuggestion
                 } else {

@@ -18,5 +18,7 @@ data class LiveState(
     val actionItems: List<ActionItem> = emptyList(),
     val coachSuggestion: String = "",
     val isRecording: Boolean = false,
-    val summarizing: Boolean = false
+    val summarizing: Boolean = false,
+    val actionItemsExpanded: Boolean = true,
+    val coachEnabled: Boolean = false
 )
