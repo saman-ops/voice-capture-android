@@ -20,9 +20,11 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.chip.Chip
 import com.google.android.material.snackbar.Snackbar
 import com.s3id3l.voicecapture.data.PrefsManager
+import com.s3id3l.voicecapture.data.db.RecordingDatabase
 import com.s3id3l.voicecapture.data.db.RecordingEntity
 import com.s3id3l.voicecapture.databinding.ActivityDetailBinding
 import com.s3id3l.voicecapture.databinding.BottomSheetChatBinding
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import java.io.File
@@ -39,6 +41,9 @@ class DetailActivity : AppCompatActivity() {
     private val vm: DetailViewModel by viewModels()
     private var chatAdapter: ChatAdapter? = null
     private var mediaPlayer: MediaPlayer? = null
+    private lateinit var detailActionAdapter: DetailActionItemAdapter
+    private var currentRecordingId: Long = -1
+    private var currentActionItems: MutableList<DetailActionItem> = mutableListOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +59,7 @@ class DetailActivity : AppCompatActivity() {
         setupFormatChips()
         setupActions()
         setupChat()
+        setupDetailActionItems()
         observeState()
         b.btnPromptBuilder.setOnClickListener {
             PromptBuilderSheet(this, vm, b.root).show()
@@ -71,6 +77,45 @@ class DetailActivity : AppCompatActivity() {
                 vm.saveTitle(b.titleEditable.text.toString())
             }
             false
+        }
+    }
+
+    private fun setupDetailActionItems() {
+        detailActionAdapter = DetailActionItemAdapter { index, _ ->
+            if (index < currentActionItems.size) {
+                currentActionItems[index] = currentActionItems[index].copy(sentToTasks = true)
+                detailActionAdapter.submitList(currentActionItems.toList())
+                if (currentRecordingId > 0) {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        RecordingDatabase.getInstance(applicationContext)
+                            .recordingDao()
+                            .updateActionItems(currentRecordingId, serializeDetailActionItems(currentActionItems))
+                    }
+                }
+            }
+        }
+        b.rvDetailActionItems.layoutManager = LinearLayoutManager(this)
+        b.rvDetailActionItems.adapter = detailActionAdapter
+
+        b.btnTasksAllDetail.setOnClickListener {
+            var changed = false
+            currentActionItems.forEachIndexed { i, item ->
+                if (!item.sentToTasks) {
+                    DetailActionItemAdapter.openGoogleTasks(this, item.text)
+                    currentActionItems[i] = item.copy(sentToTasks = true)
+                    changed = true
+                }
+            }
+            if (changed) {
+                detailActionAdapter.submitList(currentActionItems.toList())
+                if (currentRecordingId > 0) {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        RecordingDatabase.getInstance(applicationContext)
+                            .recordingDao()
+                            .updateActionItems(currentRecordingId, serializeDetailActionItems(currentActionItems))
+                    }
+                }
+            }
         }
     }
 
@@ -346,12 +391,16 @@ class DetailActivity : AppCompatActivity() {
                         b.deepSummarySection.visibility = View.GONE
                     }
                     if (rec.liveActionItems.isNotEmpty() && rec.liveActionItems != "[]") {
-                        try {
-                            val arr = JSONArray(rec.liveActionItems)
-                            val itemsText = (0 until arr.length()).joinToString("\n") { arr.getString(it) }
-                            b.actionItemsContent.text = itemsText
+                        val items = parseDetailActionItems(rec.liveActionItems)
+                        if (items.isNotEmpty()) {
+                            currentRecordingId = rec.id
+                            // Only reload list if not already managing (avoid overwriting sentToTasks state mid-session)
+                            if (currentActionItems.isEmpty() || currentActionItems.map { it.text } != items.map { it.text }) {
+                                currentActionItems = items.toMutableList()
+                            }
+                            detailActionAdapter.submitList(currentActionItems.toList())
                             b.actionItemsSection.visibility = View.VISIBLE
-                        } catch (_: Exception) {
+                        } else {
                             b.actionItemsSection.visibility = View.GONE
                         }
                     } else {
