@@ -36,6 +36,7 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
     private var schedulerJob: Job? = null
     private var startTime = 0L
     private var coachDismissJob: Job? = null
+    private val previousCoachSuggestions = mutableListOf<String>()
 
     fun startLive(context: Context) {
         startTime = System.currentTimeMillis()
@@ -43,6 +44,7 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
         lastSummaryAt = 0L
         lastActionItemsAt = 0L
         lastCoachAt = 0L
+        previousCoachSuggestions.clear()
         _state.update { it.copy(isRecording = true, liveText = "", partialText = "") }
 
         recognizer = ContinuousSpeechRecognizer(context).also { rec ->
@@ -167,11 +169,16 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
             val words = accumulatedText.toString().split(" ").filter { it.isNotBlank() }
             if (words.size >= 10) {
                 lastCoachAt = System.currentTimeMillis()
-                val recentText = words.takeLast(100).joinToString(" ")
+                val recentText = words.takeLast(300).joinToString(" ")
+                val actionItems = _state.value.actionItems.map { it.text }
+                val sessionMinutes = (_state.value.elapsedMs / 60_000).toInt()
+                val prevSuggestions = previousCoachSuggestions.toList()
                 viewModelScope.launch(Dispatchers.IO) {
                     try {
-                        val suggestion = engine.coachSuggestion(recentText)
+                        val suggestion = engine.coachSuggestion(recentText, actionItems, sessionMinutes, prevSuggestions)
                         if (suggestion.isNotEmpty()) {
+                            previousCoachSuggestions.add(suggestion)
+                            if (previousCoachSuggestions.size > 10) previousCoachSuggestions.removeAt(0)
                             _state.update { it.copy(coachSuggestion = suggestion) }
                             coachDismissJob?.cancel()
                             coachDismissJob = viewModelScope.launch {
@@ -275,11 +282,16 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
 
         if (_state.value.coachEnabled && now - lastCoachAt >= 30_000L) {
             lastCoachAt = now
-            val recentWords = words.takeLast(100).joinToString(" ")
+            val recentText = words.takeLast(300).joinToString(" ")
+            val actionItems = _state.value.actionItems.map { it.text }
+            val sessionMinutes = (_state.value.elapsedMs / 60_000).toInt()
+            val prevSuggestions = previousCoachSuggestions.toList()
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    val suggestion = engine.coachSuggestion(recentWords)
+                    val suggestion = engine.coachSuggestion(recentText, actionItems, sessionMinutes, prevSuggestions)
                     if (suggestion.isNotEmpty()) {
+                        previousCoachSuggestions.add(suggestion)
+                        if (previousCoachSuggestions.size > 10) previousCoachSuggestions.removeAt(0)
                         _state.update { it.copy(coachSuggestion = suggestion) }
                         coachDismissJob?.cancel()
                         coachDismissJob = viewModelScope.launch {

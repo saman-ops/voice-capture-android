@@ -18,13 +18,23 @@ class SuggestionAdapter(
         VH(ItemSuggestionBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-        val item   = getItem(position)
-        val queued = item.status == "queued"
-        holder.b.tvTitle.text    = item.title
-        holder.b.tvDesc.text     = item.description
-        holder.b.btnQueue.text   = if (queued) "✅ Eingeplant" else "Einplanen"
-        holder.b.btnQueue.isEnabled = !queued
-        holder.b.btnQueue.setOnClickListener { onQueue(item) }
+        val item = getItem(position)
+        val implementing = item.status == SuggestionEntity.STATUS_IMPLEMENTING
+        val done = item.status == SuggestionEntity.STATUS_DONE
+        holder.b.tvTitle.text = item.title
+        holder.b.tvDesc.text = item.description
+        holder.b.btnQueue.text = when {
+            done -> "✅ Umgesetzt"
+            implementing -> "…"
+            else -> "UMSETZEN"
+        }
+        holder.b.btnQueue.isEnabled = !done && !implementing
+        holder.b.btnQueue.alpha = if (implementing) 0.5f else 1.0f
+        if (!done && !implementing) {
+            holder.b.btnQueue.setOnClickListener { onQueue(item) }
+        } else {
+            holder.b.btnQueue.setOnClickListener(null)
+        }
     }
 
     companion object {

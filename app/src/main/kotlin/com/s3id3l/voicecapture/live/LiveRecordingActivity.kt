@@ -1,7 +1,9 @@
 package com.s3id3l.voicecapture.live
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.speech.SpeechRecognizer
 import android.text.SpannableString
@@ -119,6 +121,21 @@ class LiveRecordingActivity : AppCompatActivity() {
         b.btnDismissCoach.setOnClickListener { vm.dismissCoach() }
 
         b.btnSummarizeNow.setOnClickListener { vm.triggerSummaryNow() }
+
+        b.btnTasksAll.setOnClickListener {
+            val items = vm.state.value.actionItems
+            if (items.isEmpty()) {
+                Toast.makeText(this, "Keine Action Items vorhanden", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            items.forEach { item ->
+                val uri = Uri.Builder()
+                    .scheme("https").authority("tasks.google.com").path("/tasks/create")
+                    .appendQueryParameter("title", item.text).build()
+                startActivity(Intent(Intent.ACTION_VIEW, uri).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
+            }
+            Toast.makeText(this, "${items.size} Items → Google Tasks", Toast.LENGTH_SHORT).show()
+        }
 
         b.actionItemsHeader.setOnClickListener { vm.toggleActionItems() }
 

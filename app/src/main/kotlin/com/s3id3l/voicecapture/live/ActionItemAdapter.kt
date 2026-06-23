@@ -1,6 +1,8 @@
 package com.s3id3l.voicecapture.live
 
+import android.content.Intent
 import android.graphics.Paint
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -39,6 +41,13 @@ class ActionItemAdapter(
             onToggle(item.copy(done = checked))
         }
         holder.b.btnRemoveItem.setOnClickListener { onRemove(item) }
+        holder.b.btnSendTasks.setOnClickListener {
+            val ctx = holder.itemView.context
+            val uri = Uri.Builder()
+                .scheme("https").authority("tasks.google.com").path("/tasks/create")
+                .appendQueryParameter("title", item.text).build()
+            ctx.startActivity(Intent(Intent.ACTION_VIEW, uri).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
+        }
     }
 
     fun getItemAt(position: Int): ActionItem = getItem(position)

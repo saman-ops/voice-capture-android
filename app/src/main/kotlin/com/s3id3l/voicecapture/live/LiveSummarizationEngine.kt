@@ -45,13 +45,37 @@ class LiveSummarizationEngine(
             .filter { it.isNotBlank() }
     }
 
-    fun coachSuggestion(block: String): String {
+    fun coachSuggestion(
+        recentTranscript: String,
+        actionItemsSoFar: List<String> = emptyList(),
+        sessionMinutes: Int = 0,
+        previousSuggestions: List<String> = emptyList()
+    ): String {
+        val actionContext = if (actionItemsSoFar.isNotEmpty())
+            "\nBereits identifizierte Action Items:\n${actionItemsSoFar.joinToString("\n") { "• $it" }}"
+        else ""
+        val prevContext = if (previousSuggestions.isNotEmpty())
+            "\nBereits gegebene Empfehlungen (NICHT wiederholen):\n${previousSuggestions.takeLast(3).joinToString("\n") { "- $it" }}"
+        else ""
+        val durationCtx = if (sessionMinutes > 0) "\nMeeting-Dauer bisher: $sessionMinutes Minuten" else ""
         val raw = callClaude(
-            system = "Du bist Meeting-Coach für einen Produktmanager. Gib HÖCHSTENS EINE Handlungsempfehlung zurück. Format: \"💡 [max 10 Wörter]\". Beispiele: \"💡 Nach Datum fragen\", \"💡 Als Requirement erfassen\", \"💡 Risiko dokumentieren\". Kein relevanter Moment: gib exakt \"\" zurück.",
-            user = block,
-            maxTokens = 64
+            system = "Du bist PM-Coach für Juergen, Produktmanager bei Frequentis (Public Safety Communications — Leitstellen, TETRA, MCX).\n\n" +
+                "Analysiere das aktuelle Meeting-Transkript und gib EINE einzige, präzise Handlungsempfehlung.\n\n" +
+                "Priorisiere diese Situationen:\n" +
+                "- Unklare Entscheidungsverantwortlichkeit → Wer entscheidet bis wann?\n" +
+                "- Unerfasste Risiken oder Blockers → direkt ansprechen\n" +
+                "- Fehlende Stakeholder → Wer muss noch gehört werden?\n" +
+                "- Anforderungen nicht spezifisch → Als Requirement mit Akzeptanzkriterium erfassen\n" +
+                "- Folgeaktionen nicht assigned → konkrete Person zuordnen\n" +
+                "- Budget/Roadmap-Opportunity → sofort aufnehmen\n\n" +
+                "Format: \"💡 [max 12 Wörter, Deutsch, imperativ und konkret]\"\n" +
+                "Beispiele: \"💡 Akzeptanzkriterium für dieses Feature festlegen\", \"💡 Max als Owner für Q3-Lieferung bestätigen\", \"💡 Dependency zu ASTRID-Projekt dokumentieren\"\n\n" +
+                "Kein relevanter Moment oder zu wenig Kontext: antworte mit exakt \"\"" +
+                actionContext + prevContext + durationCtx,
+            user = recentTranscript,
+            maxTokens = 80
         )
-        return if (raw == "\"\"" || raw.isBlank()) "" else raw
+        return if (raw == "\"\"" || raw.isBlank()) "" else raw.trim('"')
     }
 
     private fun callClaude(system: String, user: String, maxTokens: Int): String {

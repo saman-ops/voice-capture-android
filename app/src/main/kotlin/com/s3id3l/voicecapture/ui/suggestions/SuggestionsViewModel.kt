@@ -44,7 +44,7 @@ class SuggestionsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun queue(suggestion: SuggestionEntity) = viewModelScope.launch {
-        db.suggestionDao().updateStatus(suggestion.id, "queued")
+        db.suggestionDao().updateStatus(suggestion.id, SuggestionEntity.STATUS_IMPLEMENTING)
         try {
             withContext(Dispatchers.IO) {
                 val body = JSONObject().apply {
@@ -59,8 +59,10 @@ class SuggestionsViewModel(app: Application) : AndroidViewModel(app) {
                     .post(body).build()
                     .let { http.newCall(it).execute().close() }
             }
-            _message.emit("✅ \"${suggestion.title}\" eingeplant")
+            db.suggestionDao().updateStatus(suggestion.id, SuggestionEntity.STATUS_DONE)
+            _message.emit("✅ \"${suggestion.title}\" wird umgesetzt")
         } catch (e: Exception) {
+            db.suggestionDao().updateStatus(suggestion.id, SuggestionEntity.STATUS_PENDING)
             _message.emit("⚠️ ${e.message}")
         }
     }
