@@ -170,6 +170,8 @@
         app:cardCornerRadius="10dp"
         app:strokeColor="#3F3F8A"
         app:strokeWidth="1dp"
+        android:clickable="true"
+        android:focusable="true"
         android:visibility="gone">
 
         <LinearLayout
@@ -201,6 +203,15 @@
                 android:contentDescription="Schließen" />
 
         </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tippen → Als Action Item"
+            android:textColor="#5B5E9A"
+            android:textSize="10sp"
+            android:paddingStart="14dp"
+            android:paddingBottom="8dp" />
 
     </com.google.android.material.card.MaterialCardView>
 

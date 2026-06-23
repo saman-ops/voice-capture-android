@@ -155,6 +155,14 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(coachSuggestion = "") }
     }
 
+    fun acceptCoachSuggestion() {
+        val suggestion = _state.value.coachSuggestion.trim()
+        if (suggestion.isBlank()) return
+        val text = suggestion.removePrefix("💡").trim().trimStart('"').trimEnd('"').trim()
+        if (text.isNotBlank()) addActionItem(text)
+        dismissCoach()
+    }
+
     fun toggleActionItems() {
         _state.update { it.copy(actionItemsExpanded = !it.actionItemsExpanded) }
     }

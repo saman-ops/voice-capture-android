@@ -120,6 +120,11 @@ class LiveRecordingActivity : AppCompatActivity() {
 
         b.btnDismissCoach.setOnClickListener { vm.dismissCoach() }
 
+        b.cardCoach.setOnClickListener {
+            vm.acceptCoachSuggestion()
+            Toast.makeText(this, "✓ Als Action Item hinzugefügt", Toast.LENGTH_SHORT).show()
+        }
+
         b.btnSummarizeNow.setOnClickListener { vm.triggerSummaryNow() }
 
         b.btnTasksAll.setOnClickListener {
