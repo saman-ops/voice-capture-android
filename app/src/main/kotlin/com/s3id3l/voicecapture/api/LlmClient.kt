@@ -92,7 +92,13 @@ class LlmClient internal constructor(
             }))
             put("generationConfig", JSONObject().apply {
                 put("temperature", 0.0)
-                put("maxOutputTokens", 4096)
+                // gemini-2.5-flash is a thinking model; with thinking enabled the
+                // reasoning tokens eat into maxOutputTokens and can exhaust the budget
+                // before any transcript is emitted (finishReason=MAX_TOKENS, no parts).
+                // Disable thinking so the full budget is available for the transcript.
+                put("thinkingConfig", JSONObject().apply { put("thinkingBudget", 0) })
+                // Headroom for long recordings (up to 5 min) so the transcript is not truncated.
+                put("maxOutputTokens", 16384)
             })
         }
 
@@ -111,20 +117,61 @@ class LlmClient internal constructor(
             }
             if (!resp.isSuccessful) throw RuntimeException("Gemini Fehler ${resp.code}: $respBody")
 
-            val json = JSONObject(respBody)
-            return json.getJSONArray("candidates")
-                .getJSONObject(0)
-                .getJSONObject("content")
-                .getJSONArray("parts")
-                .getJSONObject(0)
-                .getString("text")
-                .trim()
+            return parseGeminiTranscript(respBody)
         } catch (e: ConnectException) {
             throw RuntimeException("Netzwerkfehler – keine Verbindung zu Gemini. Bitte erneut versuchen.")
         } catch (e: SocketTimeoutException) {
             throw RuntimeException("Netzwerk-Timeout – bitte erneut versuchen.")
         } catch (e: IOException) {
             throw RuntimeException("Netzwerkfehler: ${e.message}")
+        }
+    }
+
+    // ── Gemini response parsing (extracted for testability) ───────────────────
+
+    companion object {
+        /**
+         * Extracts the transcript from a Gemini generateContent response body.
+         *
+         * Robust against the failure modes of thinking models (gemini-2.5-flash):
+         * a response may arrive with no `parts` (budget exhausted by reasoning),
+         * with `thought` parts interleaved, or with the transcript split across
+         * multiple text parts. Throws a descriptive [RuntimeException] instead of
+         * a cryptic JSONException when no usable text is present.
+         */
+        internal fun parseGeminiTranscript(respBody: String): String {
+            val json = JSONObject(respBody)
+
+            // Prompt-level block (safety filter, etc.) → no candidates at all.
+            json.optJSONObject("promptFeedback")?.optString("blockReason")?.takeIf { it.isNotEmpty() }?.let {
+                throw RuntimeException("Gemini hat die Aufnahme blockiert ($it)")
+            }
+
+            val candidate = json.optJSONArray("candidates")?.optJSONObject(0)
+                ?: throw RuntimeException("Gemini: keine Transkription erhalten")
+
+            // Collect text from all non-thought parts (a thinking model may emit several).
+            val parts = candidate.optJSONObject("content")?.optJSONArray("parts")
+            val text = buildString {
+                if (parts != null) {
+                    for (i in 0 until parts.length()) {
+                        val part = parts.optJSONObject(i) ?: continue
+                        if (part.optBoolean("thought", false)) continue
+                        append(part.optString("text", ""))
+                    }
+                }
+            }.trim()
+
+            if (text.isEmpty()) {
+                val reason = candidate.optString("finishReason", "unbekannt")
+                throw RuntimeException(
+                    if (reason == "MAX_TOKENS")
+                        "Gemini: Aufnahme zu lang für eine Transkription – bitte kürzer aufnehmen"
+                    else
+                        "Gemini: leere Transkription (finishReason=$reason)"
+                )
+            }
+            return text
         }
     }
 
