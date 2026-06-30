@@ -84,6 +84,14 @@ class DetailActivity : AppCompatActivity() {
             val rec = vm.recording.value ?: return@setOnClickListener
             copyToClipboard("Alle Artefakte", buildAllArtifacts(rec))
         }
+        b.btnCopySimpleSummary.setOnClickListener {
+            val rec = vm.recording.value ?: return@setOnClickListener
+            copyToClipboard("Zusammenfassung", rec.liveSummarySimple)
+        }
+        b.btnCopyDeepSummary.setOnClickListener {
+            val rec = vm.recording.value ?: return@setOnClickListener
+            copyToClipboard("Tiefe Analyse", buildDeepSummaryText(rec.liveSummaryDeep))
+        }
 
         b.titleEditable.setOnEditorActionListener { _, action, _ ->
             if (action == EditorInfo.IME_ACTION_DONE) {
@@ -158,6 +166,18 @@ class DetailActivity : AppCompatActivity() {
                     .updateActionItems(currentRecordingId, serializeDetailActionItems(currentActionItems))
             }
         }
+    }
+
+    /** Flattens the block-summary JSON into plain copyable text (mirrors the on-screen rendering). */
+    private fun buildDeepSummaryText(deepJson: String): String {
+        if (deepJson.isBlank() || deepJson == "[]") return ""
+        return runCatching {
+            val arr = JSONArray(deepJson)
+            (0 until arr.length()).joinToString("\n\n─────\n\n") { i ->
+                val o = arr.getJSONObject(i)
+                "⏱ ${o.getString("label")}\n${o.getString("text")}"
+            }
+        }.getOrDefault("")
     }
 
     private fun copyToClipboard(label: String, text: String) {

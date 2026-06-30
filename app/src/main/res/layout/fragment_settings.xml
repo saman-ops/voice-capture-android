@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_dark">
@@ -38,6 +39,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Anthropic API Key"
+            app:endIconMode="password_toggle"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_anthropic_key"
@@ -52,6 +54,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Gemini API Key (für Transkription)"
+            app:endIconMode="password_toggle"
             android:layout_marginBottom="24dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_gemini_key"
@@ -136,7 +139,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Google Doc Webhook URL"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="10dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_google_doc_webhook_url"
                 android:layout_width="match_parent"
@@ -144,6 +147,18 @@
                 android:inputType="textUri"
                 android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_test_webhook"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="🔌 Verbindung testen"
+            android:textSize="13sp"
+            android:textColor="@color/accent_voice"
+            android:background="@drawable/chip_bg"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:layout_marginBottom="24dp" />
 
         <!-- Section: SMTP -->
         <TextView
@@ -209,6 +224,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="SMTP Passwort / App-Passwort"
+            app:endIconMode="password_toggle"
             android:layout_marginBottom="28dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_smtp_pass"

@@ -17,7 +17,8 @@ import kotlinx.coroutines.withContext
 
 class ActionItemAdapter(
     private val onToggle: (ActionItem) -> Unit,
-    private val onRemove: (ActionItem) -> Unit
+    private val onRemove: (ActionItem) -> Unit,
+    private val onSent: (ActionItem) -> Unit
 ) : ListAdapter<ActionItem, ActionItemAdapter.VH>(DIFF) {
 
     companion object {
@@ -46,14 +47,24 @@ class ActionItemAdapter(
             onToggle(item.copy(done = checked))
         }
         holder.b.btnRemoveItem.setOnClickListener { onRemove(item) }
+
+        // Sent-state: persistent ✓, disabled once delivered to Google Tasks
+        holder.b.btnSendTasks.text = if (item.sentToTasks) "✓" else "📋"
+        holder.b.btnSendTasks.isEnabled = !item.sentToTasks
+        holder.b.btnSendTasks.alpha = if (item.sentToTasks) 0.5f else 1f
         holder.b.btnSendTasks.setOnClickListener {
+            if (item.sentToTasks) return@setOnClickListener
             val ctx = holder.itemView.context
             val webhook = PrefsManager(ctx).googleDocWebhookUrl
+            if (webhook.isBlank()) {
+                Toast.makeText(ctx, "Kein Google-Webhook konfiguriert", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
             holder.b.btnSendTasks.isEnabled = false
             CoroutineScope(Dispatchers.IO).launch {
                 val ok = GoogleTasksSender.sendTask(webhook, item.text)
                 withContext(Dispatchers.Main) {
-                    holder.b.btnSendTasks.isEnabled = true
+                    if (ok) onSent(item) else holder.b.btnSendTasks.isEnabled = true
                     Toast.makeText(
                         ctx,
                         if (ok) "✓ An Google Tasks gesendet" else "⚠️ Fehler beim Senden",

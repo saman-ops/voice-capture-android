@@ -107,7 +107,12 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
             }.toString()
 
             val itemsJson = JSONArray().also { arr ->
-                snapshot.actionItems.forEach { item -> arr.put(item.text) }
+                snapshot.actionItems.forEach { item ->
+                    arr.put(JSONObject()
+                        .put("text", item.text)
+                        .put("sentToTasks", item.sentToTasks)
+                        .put("done", item.done))
+                }
             }.toString()
 
             val formattedOutput = snapshot.summary.ifEmpty {
@@ -155,6 +160,13 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
 
     fun removeActionItem(id: Long) {
         _state.update { it.copy(actionItems = it.actionItems.filter { ai -> ai.id != id }) }
+    }
+
+    /** Marks an item as sent to Google Tasks so the sent-state survives into the saved recording. */
+    fun markActionItemSent(item: ActionItem) {
+        _state.update { s ->
+            s.copy(actionItems = s.actionItems.map { if (it.id == item.id) it.copy(sentToTasks = true) else it })
+        }
     }
 
     fun toggleActionItems() {

@@ -157,6 +157,20 @@
         android:clipToPadding="false"
         android:paddingBottom="4dp" />
 
+    <TextView
+        android:id="@+id/tv_action_items_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Noch keine Action Items erkannt"
+        android:textColor="@color/text_muted"
+        android:textSize="12sp"
+        android:fontFamily="sans-serif"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="10dp"
+        android:visibility="gone" />
+
     <!-- Advisor Panel — 3 autonome Agenten -->
     <LinearLayout
         android:id="@+id/advisor_panel"

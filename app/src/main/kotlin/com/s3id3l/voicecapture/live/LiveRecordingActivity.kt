@@ -72,7 +72,8 @@ class LiveRecordingActivity : AppCompatActivity() {
     private fun setupActionItems() {
         actionAdapter = ActionItemAdapter(
             onToggle = { vm.toggleActionItem(it) },
-            onRemove = { vm.removeActionItem(it.id) }
+            onRemove = { vm.removeActionItem(it.id) },
+            onSent = { vm.markActionItemSent(it) }
         )
         b.recyclerActionItems.layoutManager = LinearLayoutManager(this)
         b.recyclerActionItems.adapter = actionAdapter
@@ -133,15 +134,20 @@ class LiveRecordingActivity : AppCompatActivity() {
                 Toast.makeText(this, "Kein Google-Webhook konfiguriert", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
+            val unsent = items.filter { !it.sentToTasks }
+            if (unsent.isEmpty()) {
+                Toast.makeText(this, "Alle Items bereits gesendet", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             b.btnTasksAll.isEnabled = false
             lifecycleScope.launch {
                 var success = 0
-                for (item in items) {
+                for (item in unsent) {
                     val ok = withContext(Dispatchers.IO) { GoogleTasksSender.sendTask(webhook, item.text) }
-                    if (ok) success++
+                    if (ok) { vm.markActionItemSent(item); success++ }
                 }
                 b.btnTasksAll.isEnabled = true
-                Toast.makeText(this@LiveRecordingActivity, "✓ $success von ${items.size} → Google Tasks", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@LiveRecordingActivity, "✓ $success von ${unsent.size} → Google Tasks", Toast.LENGTH_LONG).show()
             }
         }
 
@@ -230,6 +236,8 @@ class LiveRecordingActivity : AppCompatActivity() {
                 // Action items
                 actionAdapter.submitList(state.actionItems.toList())
                 b.recyclerActionItems.visibility = if (state.actionItemsExpanded) View.VISIBLE else View.GONE
+                b.tvActionItemsEmpty.visibility =
+                    if (state.actionItemsExpanded && state.actionItems.isEmpty()) View.VISIBLE else View.GONE
                 b.tvActionItemsToggle.text = if (state.actionItemsExpanded) "▼" else "▶"
 
                 // On-demand summary button
