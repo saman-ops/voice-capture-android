@@ -19,16 +19,53 @@ class RecordingAdapter(
 ) : ListAdapter<RecordingEntity, RecordingAdapter.VH>(DIFF) {
 
     var selectedIds: Set<Long> = emptySet()
-        set(value) { field = value; notifyDataSetChanged() }
+        set(value) {
+            val old = field
+            field = value
+            if (old.isEmpty() != value.isEmpty()) {
+                // Toggling selection mode on/off changes every row's dimming → rebind all (status/alpha only)
+                notifyItemRangeChanged(0, itemCount, PAYLOAD_SELECTION)
+            } else {
+                // Only the rows whose selected-state flipped need rebinding
+                val changed = (old - value) + (value - old)
+                for (i in 0 until itemCount) {
+                    if (getItem(i).id in changed) notifyItemChanged(i, PAYLOAD_SELECTION)
+                }
+            }
+        }
 
     /** When false (e.g. trash view), date-group headers are hidden. */
     var groupingEnabled: Boolean = true
-        set(value) { field = value; notifyDataSetChanged() }
+        set(value) {
+            if (field == value) return
+            field = value
+            notifyItemRangeChanged(0, itemCount)
+        }
 
     inner class VH(val b: ItemRecordingBinding) : RecyclerView.ViewHolder(b.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
         VH(ItemRecordingBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+
+    override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {
+        if (payloads.contains(PAYLOAD_SELECTION)) {
+            bindSelection(holder, getItem(position))
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
+    /** Binds only the selection-dependent visuals (status glyph + row dimming). */
+    private fun bindSelection(holder: VH, item: RecordingEntity) {
+        val selected = item.id in selectedIds
+        holder.b.tvStatus.text = if (selected) "✓" else when (item.status) {
+            RecordingEntity.STATUS_DONE       -> "✅"
+            RecordingEntity.STATUS_PROCESSING -> "⏳"
+            RecordingEntity.STATUS_ERROR      -> "❌"
+            else                              -> "⏳"
+        }
+        holder.b.root.alpha = if (selectedIds.isEmpty() || selected) 1f else 0.55f
+    }
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = getItem(position)
@@ -68,14 +105,7 @@ class RecordingAdapter(
         } else {
             holder.b.tvActionCount.visibility = android.view.View.GONE
         }
-        val selected = item.id in selectedIds
-        holder.b.tvStatus.text = if (selected) "✓" else when (item.status) {
-            RecordingEntity.STATUS_DONE       -> "✅"
-            RecordingEntity.STATUS_PROCESSING -> "⏳"
-            RecordingEntity.STATUS_ERROR      -> "❌"
-            else                              -> "⏳"
-        }
-        holder.b.root.alpha = if (selectedIds.isEmpty() || selected) 1f else 0.55f
+        bindSelection(holder, item)
         holder.b.root.setOnClickListener {
             if (selectedIds.isNotEmpty()) onLongClick?.invoke(item) else onClick(item)
         }
@@ -105,6 +135,8 @@ class RecordingAdapter(
     }
 
     companion object {
+        private const val PAYLOAD_SELECTION = "selection"
+
         val DIFF = object : DiffUtil.ItemCallback<RecordingEntity>() {
             override fun areItemsTheSame(a: RecordingEntity, b: RecordingEntity) = a.id == b.id
             override fun areContentsTheSame(a: RecordingEntity, b: RecordingEntity) = a == b

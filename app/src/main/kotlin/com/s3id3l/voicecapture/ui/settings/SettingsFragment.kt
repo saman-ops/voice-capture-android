@@ -5,9 +5,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.s3id3l.voicecapture.data.PrefsManager
 import com.s3id3l.voicecapture.databinding.FragmentSettingsBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
 
 class SettingsFragment : Fragment() {
 
@@ -26,6 +33,39 @@ class SettingsFragment : Fragment() {
         loadSettings()
 
         b.btnSave.setOnClickListener { saveSettings() }
+        b.btnTestWebhook.setOnClickListener { testWebhook() }
+    }
+
+    /** Pings the Google Doc webhook URL to confirm it is reachable. */
+    private fun testWebhook() {
+        val url = b.etGoogleDocWebhookUrl.text.toString().trim()
+        if (url.isBlank()) {
+            Snackbar.make(b.root, "Keine Webhook-URL eingetragen", Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        b.btnTestWebhook.isEnabled = false
+        b.btnTestWebhook.text = "… teste"
+        viewLifecycleOwner.lifecycleScope.launch {
+            val reachable = withContext(Dispatchers.IO) {
+                try {
+                    val client = OkHttpClient.Builder()
+                        .connectTimeout(15, TimeUnit.SECONDS)
+                        .readTimeout(20, TimeUnit.SECONDS)
+                        .build()
+                    client.newCall(Request.Builder().url(url).get().build())
+                        .execute().use { it.code in 200..399 }
+                } catch (_: Exception) {
+                    false
+                }
+            }
+            b.btnTestWebhook.isEnabled = true
+            b.btnTestWebhook.text = "🔌 Verbindung testen"
+            Snackbar.make(
+                b.root,
+                if (reachable) "✅ Webhook erreichbar" else "⚠️ Webhook nicht erreichbar",
+                Snackbar.LENGTH_LONG
+            ).show()
+        }
     }
 
     private fun loadSettings() {

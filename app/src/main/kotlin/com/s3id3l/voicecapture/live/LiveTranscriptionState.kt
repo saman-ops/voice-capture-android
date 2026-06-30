@@ -3,7 +3,8 @@ package com.s3id3l.voicecapture.live
 data class ActionItem(
     val id: Long = System.currentTimeMillis(),
     val text: String,
-    val done: Boolean = false
+    val done: Boolean = false,
+    val sentToTasks: Boolean = false
 )
 
 enum class TranscriptionMode { ORIGINAL, SIMPLE, DEEP }
