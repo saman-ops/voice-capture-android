@@ -115,10 +115,50 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Notify Telegram
+        env:
+          # Values passed via env (never inline ${{ }} in run:) to prevent
+          # shell/command injection through a crafted commit message.
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT_ID: "621597017"
+          BUILD_NUM: ${{ github.run_number }}
+          COMMIT_MSG_RAW: ${{ github.event.head_commit.message }}
         run: |
-          BUILD_NUM="${{ github.run_number }}"
+          set -euo pipefail
+
+          if [ -z "${TG_TOKEN:-}" ]; then
+            echo "::error::TELEGRAM_BOT_TOKEN secret is not set — cannot notify."
+            exit 1
+          fi
+
           APK_URL="https://github.com/saman-ops/voice-capture-android/releases/tag/build-${BUILD_NUM}"
-          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1)
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "{\"chat_id\": \"621597017\", \"text\": \"✅ VoiceCapture Build ${BUILD_NUM} freigegeben\n\n📦 APK: ${APK_URL}\n\n${COMMIT_MSG}\"}"
+          COMMIT_FIRST_LINE="$(printf '%s' "$COMMIT_MSG_RAW" | head -n1)"
+          TEXT="$(printf '✅ VoiceCapture Build %s freigegeben\n\n📦 APK: %s\n\n%s' \
+            "$BUILD_NUM" "$APK_URL" "$COMMIT_FIRST_LINE")"
+
+          # Build the JSON body with jq so quotes/newlines/emoji are safely escaped.
+          PAYLOAD="$(jq -nc \
+            --arg chat_id "$TG_CHAT_ID" \
+            --arg text "$TEXT" \
+            '{chat_id: $chat_id, text: $text, disable_web_page_preview: false}')"
+
+          # Retry up to 3x; verify Telegram's {"ok":true} so failures are LOUD
+          # instead of silently passing the step.
+          ok="false"
+          for attempt in 1 2 3; do
+            RESP="$(curl -sS -m 30 -X POST \
+              "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" || true)"
+            echo "Attempt ${attempt} response: ${RESP}"
+            if printf '%s' "$RESP" | jq -e '.ok == true' >/dev/null 2>&1; then
+              ok="true"
+              break
+            fi
+            sleep $((attempt * 3))
+          done
+
+          if [ "$ok" != "true" ]; then
+            echo "::error::Telegram notification failed after 3 attempts (see responses above)."
+            exit 1
+          fi
+          echo "Telegram notification delivered."
