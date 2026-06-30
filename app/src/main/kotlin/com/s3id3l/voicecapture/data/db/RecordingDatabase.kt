@@ -7,7 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [RecordingEntity::class, ChatMessageEntity::class, SuggestionEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class RecordingDatabase : RoomDatabase() {
@@ -33,13 +33,20 @@ abstract class RecordingDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE recordings ADD COLUMN isMerged INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE recordings ADD COLUMN segmentCount INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
         fun getInstance(context: Context): RecordingDatabase = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(
                 context.applicationContext,
                 RecordingDatabase::class.java,
                 "voicecapture.db"
             )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .fallbackToDestructiveMigration()
             .build().also { INSTANCE = it }
         }

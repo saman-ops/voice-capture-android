@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.s3id3l.voicecapture.data.PrefsManager
+import com.s3id3l.voicecapture.data.SessionMerge
 import com.s3id3l.voicecapture.data.db.RecordingDatabase
 import com.s3id3l.voicecapture.data.db.RecordingEntity
 import kotlinx.coroutines.flow.*
@@ -76,20 +77,25 @@ class HistoryViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun mergeSelected() = viewModelScope.launch {
-        val ids = _selectedIds.value.toList()
-        if (ids.size < 2) return@launch
+    /**
+     * Merges the selected recordings into a single new session, in the exact [orderedIds] order
+     * the user defined. Originals are left intact; the result is flagged as a merged session.
+     */
+    fun mergeSelected(orderedIds: List<Long>) = viewModelScope.launch {
+        if (orderedIds.size < 2) return@launch
         _merging.value = true
-        val recs = db.recordingDao().getByIds(ids).sortedBy { it.createdAt }
-        val mergedTranscript = recs.joinToString("\n\n---\n\n") { r ->
-            r.transcript.ifEmpty { r.formattedOutput }
-        }
-        val mergedOutput = recs.joinToString("\n\n") { r ->
-            r.formattedOutput.ifEmpty { r.transcript }
-        }
-        val title = recs.mapNotNull { r ->
-            r.title.ifEmpty { null }
-        }.take(3).joinToString(" + ").take(80).ifEmpty { "Zusammengeführt" }
+        // getByIds() ignores order, so re-sort into the user-defined sequence
+        val byId = db.recordingDao().getByIds(orderedIds).associateBy { it.id }
+        val recs = orderedIds.mapNotNull { byId[it] }
+        if (recs.size < 2) { _merging.value = false; return@launch }
+
+        val mergedTranscript = SessionMerge.buildMergedTranscript(
+            recs.map { it.transcript.ifEmpty { it.formattedOutput } }
+        )
+        val mergedOutput = SessionMerge.buildMergedOutput(
+            recs.map { it.formattedOutput.ifEmpty { it.transcript } }
+        )
+        val title = SessionMerge.buildMergedTitle(recs.map { it.title })
 
         db.recordingDao().insert(
             RecordingEntity(
@@ -98,7 +104,9 @@ class HistoryViewModel(app: Application) : AndroidViewModel(app) {
                 formattedOutput = mergedOutput,
                 format          = recs.first().format,
                 status          = RecordingEntity.STATUS_DONE,
-                durationMs      = recs.sumOf { it.durationMs }
+                durationMs      = recs.sumOf { it.durationMs },
+                isMerged        = true,
+                segmentCount    = recs.size
             )
         )
         clearSelection()

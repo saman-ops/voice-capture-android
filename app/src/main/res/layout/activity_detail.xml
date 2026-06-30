@@ -97,6 +97,31 @@
 
             </LinearLayout>
 
+            <!-- Session badge (merged / resumed) -->
+            <TextView
+                android:id="@+id/tv_session_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/accent_voice_light"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginBottom="14dp"
+                android:visibility="gone" />
+
+            <!-- Resume recording: append a new segment to this recording -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_resume"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="▶  Aufnahme fortsetzen"
+                android:textColor="@color/accent_voice"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/chip_bg"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:layout_marginBottom="16dp" />
+
             <!-- Retry button (shown on ERROR) -->
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btn_retry"

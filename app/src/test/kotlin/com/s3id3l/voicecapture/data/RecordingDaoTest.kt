@@ -96,6 +96,41 @@ class RecordingDaoTest {
     }
 
     @Test
+    fun `updateResumed appends segment and bumps counters without overwriting`() = runTest {
+        val id = dao.insert(newRecording().copy(transcript = "original", durationMs = 1000, segmentCount = 1))
+        dao.updateResumed(
+            id = id,
+            transcript = "original\n\n─────────\n\nsegment 2",
+            output = "• A\n\n• B",
+            durationMs = 3000,
+            segmentCount = 2,
+            status = RecordingEntity.STATUS_DONE
+        )
+        val rec = dao.getById(id)!!
+        assertTrue(rec.transcript.startsWith("original"))
+        assertTrue(rec.transcript.contains("segment 2"))
+        assertEquals(2, rec.segmentCount)
+        assertEquals(3000L, rec.durationMs)
+        assertEquals(RecordingEntity.STATUS_DONE, rec.status)
+    }
+
+    @Test
+    fun `isMerged and segmentCount persist`() = runTest {
+        val id = dao.insert(newRecording("Merged").copy(isMerged = true, segmentCount = 3))
+        val rec = dao.getById(id)!!
+        assertTrue(rec.isMerged)
+        assertEquals(3, rec.segmentCount)
+    }
+
+    @Test
+    fun `default recording is not merged and has one segment`() = runTest {
+        val id = dao.insert(newRecording())
+        val rec = dao.getById(id)!!
+        assertFalse(rec.isMerged)
+        assertEquals(1, rec.segmentCount)
+    }
+
+    @Test
     fun `updateError sets status and message`() = runTest {
         val id = dao.insert(newRecording())
         dao.updateError(id, RecordingEntity.STATUS_ERROR, "API timeout")

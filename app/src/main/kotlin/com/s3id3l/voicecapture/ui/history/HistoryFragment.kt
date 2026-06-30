@@ -7,6 +7,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -16,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import com.google.android.material.snackbar.Snackbar
+import com.s3id3l.voicecapture.RecordingActivity
 import com.s3id3l.voicecapture.data.db.RecordingEntity
 import com.s3id3l.voicecapture.databinding.FragmentHistoryBinding
 import com.s3id3l.voicecapture.ui.chat.MultiChatSheet
@@ -153,6 +155,8 @@ class HistoryFragment : Fragment() {
                     b.multiSelectBar.visibility = View.VISIBLE
                     b.tvSelectionCount.text = "${ids.size} ausgewählt"
                     b.btnMerge.visibility = if (ids.size >= 2) View.VISIBLE else View.GONE
+                    // Resume applies to exactly one recording
+                    b.btnResume.visibility = if (ids.size == 1) View.VISIBLE else View.GONE
                 }
             }
         }
@@ -166,17 +170,82 @@ class HistoryFragment : Fragment() {
             }
         }
 
-        b.btnMerge.setOnClickListener {
-            val count = vm.selectedIds.value.size
-            AlertDialog.Builder(requireContext())
-                .setTitle("$count Aufnahmen zusammenführen?")
-                .setMessage("Die ausgewählten Aufnahmen werden zu einer neuen Aufnahme zusammengeführt. Die Originale bleiben erhalten.")
-                .setPositiveButton("Zusammenführen") { _, _ -> vm.mergeSelected() }
-                .setNegativeButton("Abbrechen", null)
-                .show()
+        b.btnMerge.setOnClickListener { showMergeOrderDialog() }
+
+        b.btnResume.setOnClickListener {
+            val id = vm.selectedIds.value.firstOrNull() ?: return@setOnClickListener
+            vm.clearSelection()
+            startActivity(
+                Intent(requireContext(), RecordingActivity::class.java)
+                    .putExtra(RecordingActivity.EXTRA_RESUME_ID, id)
+            )
         }
 
         b.btnCancelSelection.setOnClickListener { vm.clearSelection() }
+    }
+
+    /**
+     * Lets the user define the segment order before merging. The originals stay intact;
+     * a new merged session is created in the chosen order.
+     */
+    private fun showMergeOrderDialog() {
+        val ids = vm.selectedIds.value.toList()
+        if (ids.size < 2) return
+        val all = vm.recordings.value
+        // Mutable working order, seeded by current (createdAt) display order
+        val order = ids.sortedBy { id -> all.indexOfFirst { it.id == id }.let { if (it < 0) Int.MAX_VALUE else it } }
+            .toMutableList()
+        val titleOf: (Long) -> String = { id ->
+            all.firstOrNull { it.id == id }?.title?.ifEmpty { "Aufnahme" } ?: "Aufnahme"
+        }
+
+        val container = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = (16 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+        }
+
+        fun render() {
+            container.removeAllViews()
+            order.forEachIndexed { index, id ->
+                val row = LinearLayout(requireContext()).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                }
+                val label = android.widget.TextView(requireContext()).apply {
+                    text = "${index + 1}. ${titleOf(id)}"
+                    setTextColor(0xFFF1F5F9.toInt())
+                    textSize = 14f
+                    maxLines = 2
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                val up = android.widget.Button(requireContext()).apply {
+                    text = "▲"; isEnabled = index > 0
+                    setOnClickListener {
+                        val t = order[index]; order[index] = order[index - 1]; order[index - 1] = t; render()
+                    }
+                }
+                val down = android.widget.Button(requireContext()).apply {
+                    text = "▼"; isEnabled = index < order.size - 1
+                    setOnClickListener {
+                        val t = order[index]; order[index] = order[index + 1]; order[index + 1] = t; render()
+                    }
+                }
+                row.addView(label); row.addView(up); row.addView(down)
+                container.addView(row)
+            }
+        }
+        render()
+
+        val scroll = android.widget.ScrollView(requireContext()).apply { addView(container) }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Reihenfolge festlegen")
+            .setView(scroll)
+            .setPositiveButton("Zusammenführen") { _, _ -> vm.mergeSelected(order.toList()) }
+            .setNegativeButton("Abbrechen", null)
+            .show()
     }
 
     private fun showRestoreDialog(rec: RecordingEntity) {

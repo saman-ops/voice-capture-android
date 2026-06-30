@@ -69,6 +69,15 @@ class DetailActivity : AppCompatActivity() {
             PromptBuilderSheet(this, vm, b.root).show()
         }
         b.btnRetry.setOnClickListener { vm.retry() }
+        b.btnResume.setOnClickListener {
+            if (currentRecordingId <= 0 && vm.recording.value == null) return@setOnClickListener
+            val resumeTarget = vm.recording.value?.id ?: return@setOnClickListener
+            startActivity(
+                Intent(this, com.s3id3l.voicecapture.RecordingActivity::class.java)
+                    .putExtra(com.s3id3l.voicecapture.RecordingActivity.EXTRA_RESUME_ID, resumeTarget)
+            )
+            finish()
+        }
 
         b.transcriptHeader.setOnClickListener {
             val visible = b.tvTranscript.visibility == View.VISIBLE
@@ -454,6 +463,22 @@ class DetailActivity : AppCompatActivity() {
                 b.btnRetry.visibility = if (
                     rec.status == RecordingEntity.STATUS_ERROR && rec.audioPath != null
                 ) View.VISIBLE else View.GONE
+
+                // Resume is only meaningful once the recording is finished
+                b.btnResume.visibility = if (rec.status == RecordingEntity.STATUS_DONE) View.VISIBLE else View.GONE
+
+                // Session badge: merged or multi-segment (resumed) recordings
+                when {
+                    rec.isMerged -> {
+                        b.tvSessionBadge.text = "🔗 Zusammengeführte Sitzung · ${rec.segmentCount} Segmente"
+                        b.tvSessionBadge.visibility = View.VISIBLE
+                    }
+                    rec.segmentCount > 1 -> {
+                        b.tvSessionBadge.text = "↻ Fortgesetzte Sitzung · ${rec.segmentCount} Segmente"
+                        b.tvSessionBadge.visibility = View.VISIBLE
+                    }
+                    else -> b.tvSessionBadge.visibility = View.GONE
+                }
                 if (b.etOutput.text.toString() != rec.formattedOutput) {
                     b.etOutput.setText(rec.formattedOutput)
                 }

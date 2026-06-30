@@ -123,6 +123,19 @@
             android:fontFamily="sans-serif-medium" />
 
         <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_resume"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="▶ Fortsetzen"
+            android:textColor="@color/accent_voice_light"
+            android:background="@null"
+            android:textSize="12sp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:layout_marginEnd="4dp"
+            android:visibility="gone" />
+
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_merge"
             android:layout_width="wrap_content"
             android:layout_height="40dp"

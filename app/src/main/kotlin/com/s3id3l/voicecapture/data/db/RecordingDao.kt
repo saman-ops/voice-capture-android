@@ -61,4 +61,12 @@ interface RecordingDao {
 
     @Query("UPDATE recordings SET liveActionItems = :itemsJson WHERE id = :id")
     suspend fun updateActionItems(id: Long, itemsJson: String)
+
+    /** Appends a resumed segment: replaces combined transcript/output, bumps duration + segment count. */
+    @Query("""UPDATE recordings SET
+        transcript=:transcript, formattedOutput=:output, durationMs=:durationMs,
+        segmentCount=:segmentCount, status=:status
+        WHERE id=:id""")
+    suspend fun updateResumed(id: Long, transcript: String, output: String,
+        durationMs: Long, segmentCount: Int, status: String)
 }

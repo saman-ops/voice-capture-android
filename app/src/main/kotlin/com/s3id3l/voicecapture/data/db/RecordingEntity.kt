@@ -20,7 +20,9 @@ data class RecordingEntity(
     val liveSummarySimple: String = "",
     val liveSummaryDeep: String = "",   // JSON-Array: [{"label":"00:00","text":"..."}]
     val liveActionItems: String = "",   // JSON-Array: ["• Task 1", "• Task 2"]
-    val isLiveSession: Boolean = false
+    val isLiveSession: Boolean = false,
+    val isMerged: Boolean = false,      // true = entstanden durch Zusammenführen mehrerer Aufnahmen
+    val segmentCount: Int = 1           // Anzahl der Segmente (>1 nach Fortsetzen oder Zusammenführen)
 ) {
     companion object {
         const val STATUS_PENDING    = "pending"

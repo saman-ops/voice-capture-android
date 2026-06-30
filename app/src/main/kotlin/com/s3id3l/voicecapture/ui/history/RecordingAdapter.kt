@@ -91,12 +91,23 @@ class RecordingAdapter(
             val s = item.durationMs / 1000
             if (s < 60) "${s}s" else "%d:%02ds".format(s / 60, s % 60)
         } else ""
-        if (item.isLiveSession) {
-            holder.b.tvFormat.text = "🔴 Live"
-            holder.b.tvFormat.setTextColor(ContextCompat.getColor(ctx, R.color.accent_red))
-        } else {
-            holder.b.tvFormat.text = item.format.replaceFirstChar { it.uppercase() }
-            holder.b.tvFormat.setTextColor(ContextCompat.getColor(ctx, R.color.text_muted))
+        when {
+            item.isMerged -> {
+                holder.b.tvFormat.text = "🔗 Zusammengeführt"
+                holder.b.tvFormat.setTextColor(ContextCompat.getColor(ctx, R.color.accent_amber))
+            }
+            item.isLiveSession -> {
+                holder.b.tvFormat.text = "🔴 Live"
+                holder.b.tvFormat.setTextColor(ContextCompat.getColor(ctx, R.color.accent_red))
+            }
+            item.segmentCount > 1 -> {
+                holder.b.tvFormat.text = "↻ ${item.segmentCount} Segmente"
+                holder.b.tvFormat.setTextColor(ContextCompat.getColor(ctx, R.color.accent_voice_light))
+            }
+            else -> {
+                holder.b.tvFormat.text = item.format.replaceFirstChar { it.uppercase() }
+                holder.b.tvFormat.setTextColor(ContextCompat.getColor(ctx, R.color.text_muted))
+            }
         }
         val actionCount = countActionItems(item.liveActionItems)
         if (actionCount > 0) {

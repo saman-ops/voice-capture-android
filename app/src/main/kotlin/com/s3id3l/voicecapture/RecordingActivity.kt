@@ -40,6 +40,8 @@ class RecordingActivity : AppCompatActivity() {
     private var recordingId = -1L
     private var serviceObserveStarted = false
     private var isProcessing = false
+    private var resumeId = -1L
+    private var resumeParent: RecordingEntity? = null
 
     private val conn = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
@@ -82,6 +84,9 @@ class RecordingActivity : AppCompatActivity() {
 
         setupFormatChips()
 
+        resumeId = intent.getLongExtra(EXTRA_RESUME_ID, -1L)
+        if (resumeId > 0) enterResumeMode(resumeId)
+
         val svcIntent = Intent(this, RecordingService::class.java)
         bindService(svcIntent, conn, Context.BIND_AUTO_CREATE)
         bindingRequested = true
@@ -108,6 +113,24 @@ class RecordingActivity : AppCompatActivity() {
                 )
             }
             finish()
+        }
+    }
+
+    /** Resume mode: record a new segment that will be appended to an existing recording. */
+    private fun enterResumeMode(parentId: Long) {
+        // The continued session keeps the original's format, so hide the format picker.
+        b.formatSelectGroup.visibility = View.GONE
+        b.tvIdleHint.text = "↻ Fortsetzung wird geladen…"
+        lifecycleScope.launch {
+            val parent = RecordingDatabase.getInstance(this@RecordingActivity)
+                .recordingDao().getById(parentId)
+            resumeParent = parent
+            if (parent == null) {
+                Snackbar.make(b.root, "Aufnahme nicht gefunden", Snackbar.LENGTH_LONG).show()
+                finish()
+                return@launch
+            }
+            b.tvIdleHint.text = "↻ Fortsetzung: ${parent.title.ifEmpty { "Aufnahme" }}\nNeues Segment aufnehmen"
         }
     }
 
@@ -170,6 +193,10 @@ class RecordingActivity : AppCompatActivity() {
         isProcessing = true
         showProcessingState()
 
+        if (resumeId > 0) processResumeSegment(file, durationMs) else processNewRecording(file, durationMs)
+    }
+
+    private fun processNewRecording(file: java.io.File, durationMs: Long) {
         lifecycleScope.launch {
             val db = RecordingDatabase.getInstance(this@RecordingActivity)
             val id = db.recordingDao().insert(
@@ -195,32 +222,65 @@ class RecordingActivity : AppCompatActivity() {
                         .build())
                     .build()
             )
-
-            db.recordingDao().getByIdFlow(id)
-                .filter {
-                    it?.status == RecordingEntity.STATUS_DONE ||
-                    it?.status == RecordingEntity.STATUS_ERROR
-                }
-                .first()
-                ?.let { rec ->
-                    isProcessing = false
-                    if (rec.status == RecordingEntity.STATUS_DONE) {
-                        // Directly open the detail view — no intermediate result screen needed
-                        startActivity(
-                            Intent(this@RecordingActivity, DetailActivity::class.java)
-                                .putExtra(DetailActivity.EXTRA_ID, rec.id)
-                        )
-                        finish()
-                    } else {
-                        showIdleState()
-                        Snackbar.make(b.root, "Fehler: ${rec.errorMessage ?: "unbekannt"}", Snackbar.LENGTH_LONG).show()
-                    }
-                }
+            awaitCompletionAndOpen(id)
         }
     }
 
+    /** Resume: append the new segment to the parent recording, then open it. */
+    private fun processResumeSegment(file: java.io.File, durationMs: Long) {
+        lifecycleScope.launch {
+            val db = RecordingDatabase.getInstance(this@RecordingActivity)
+            val parent = resumeParent ?: db.recordingDao().getById(resumeId)
+            if (parent == null) {
+                Snackbar.make(b.root, "Aufnahme nicht gefunden", Snackbar.LENGTH_LONG).show()
+                finish(); return@launch
+            }
+            // Flip to PROCESSING up-front so the completion observer doesn't fire on the existing DONE state.
+            db.recordingDao().update(parent.copy(status = RecordingEntity.STATUS_PROCESSING))
+
+            WorkManager.getInstance(this@RecordingActivity).enqueue(
+                OneTimeWorkRequestBuilder<ProcessingWorker>()
+                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
+                    .setInputData(Data.Builder()
+                        .putLong(ProcessingWorker.KEY_RESUME_ID, parent.id)
+                        .putLong(ProcessingWorker.KEY_RECORDING_ID, parent.id)
+                        .putString(ProcessingWorker.KEY_AUDIO_PATH, file.absolutePath)
+                        .putString(ProcessingWorker.KEY_FORMAT, parent.format)
+                        .putLong(ProcessingWorker.KEY_DURATION_MS, durationMs)
+                        .build())
+                    .build()
+            )
+            awaitCompletionAndOpen(parent.id)
+        }
+    }
+
+    private suspend fun awaitCompletionAndOpen(id: Long) {
+        RecordingDatabase.getInstance(this@RecordingActivity).recordingDao().getByIdFlow(id)
+            .filter {
+                it?.status == RecordingEntity.STATUS_DONE ||
+                it?.status == RecordingEntity.STATUS_ERROR
+            }
+            .first()
+            ?.let { rec ->
+                isProcessing = false
+                if (rec.status == RecordingEntity.STATUS_DONE) {
+                    recordingId = rec.id
+                    startActivity(
+                        Intent(this@RecordingActivity, DetailActivity::class.java)
+                            .putExtra(DetailActivity.EXTRA_ID, rec.id)
+                    )
+                    finish()
+                } else {
+                    showIdleState()
+                    Snackbar.make(b.root, "Fehler: ${rec.errorMessage ?: "unbekannt"}", Snackbar.LENGTH_LONG).show()
+                }
+            }
+    }
+
     private fun showIdleState() {
-        b.formatSelectGroup.visibility = View.VISIBLE
+        // In resume mode the format picker stays hidden and the hint shows the continued session.
+        b.formatSelectGroup.visibility = if (resumeId > 0) View.GONE else View.VISIBLE
         b.tvIdleHint.visibility       = View.VISIBLE
         b.tvTimer.visibility          = View.GONE
         b.waveformView.visibility     = View.GONE
@@ -286,5 +346,10 @@ class RecordingActivity : AppCompatActivity() {
             bound = false
         }
         super.onDestroy()
+    }
+
+    companion object {
+        /** When set, the recording is appended as a new segment to this existing recording id. */
+        const val EXTRA_RESUME_ID = "resume_id"
     }
 }
