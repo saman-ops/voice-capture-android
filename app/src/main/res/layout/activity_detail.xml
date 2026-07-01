@@ -108,19 +108,40 @@
                 android:layout_marginBottom="14dp"
                 android:visibility="gone" />
 
-            <!-- Resume recording: append a new segment to this recording -->
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btn_resume"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:text="▶  Aufnahme fortsetzen"
-                android:textColor="@color/accent_voice"
-                android:textSize="13sp"
-                android:fontFamily="sans-serif-medium"
-                android:background="@drawable/chip_bg"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:layout_marginBottom="16dp" />
+            <!-- Top actions: resume + delete, always reachable without scrolling -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_resume"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="▶  Fortsetzen"
+                    android:textColor="@color/accent_voice"
+                    android:textSize="13sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:background="@drawable/chip_bg"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:layout_marginEnd="8dp" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_delete_detail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="🗑  Löschen"
+                    android:textColor="@color/accent_red"
+                    android:textSize="13sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:background="@drawable/chip_bg"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
+
+            </LinearLayout>
 
             <!-- Retry button (shown on ERROR) -->
             <androidx.appcompat.widget.AppCompatButton
@@ -185,6 +206,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:minLines="5"
+                    android:maxHeight="320dp"
+                    android:scrollbars="vertical"
                     android:gravity="top"
                     android:inputType="textMultiLine|textCapSentences"
                     android:textColor="@color/text_primary"

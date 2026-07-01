@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.s3id3l.voicecapture.RecordingActivity
+import com.s3id3l.voicecapture.data.PrefsManager
 import com.s3id3l.voicecapture.live.LiveRecordingActivity
 import com.s3id3l.voicecapture.databinding.FragmentHomeBinding
 import com.s3id3l.voicecapture.ui.detail.DetailActivity
@@ -68,16 +69,28 @@ class HomeFragment : Fragment() {
     }
 
     private fun showRecordChooser() {
-        val options = arrayOf("🎙  Standard-Aufnahme", "🔴  Live-Transkription")
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Neue Aufnahme")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> startActivity(Intent(requireContext(), RecordingActivity::class.java))
-                    1 -> startActivity(Intent(requireContext(), LiveRecordingActivity::class.java))
-                }
-            }
-            .show()
+        val sheet = com.google.android.material.bottomsheet.BottomSheetDialog(requireContext())
+        val view = layoutInflater.inflate(
+            com.s3id3l.voicecapture.R.layout.bottom_sheet_record_chooser, null
+        )
+        sheet.setContentView(view)
+
+        view.findViewById<View>(com.s3id3l.voicecapture.R.id.opt_standard).setOnClickListener {
+            sheet.dismiss()
+            startActivity(Intent(requireContext(), RecordingActivity::class.java))
+        }
+        view.findViewById<View>(com.s3id3l.voicecapture.R.id.opt_transcription).setOnClickListener {
+            sheet.dismiss()
+            startActivity(
+                Intent(requireContext(), RecordingActivity::class.java)
+                    .putExtra(RecordingActivity.EXTRA_FORMAT, PrefsManager.FORMAT_RAW)
+            )
+        }
+        view.findViewById<View>(com.s3id3l.voicecapture.R.id.opt_live).setOnClickListener {
+            sheet.dismiss()
+            startActivity(Intent(requireContext(), LiveRecordingActivity::class.java))
+        }
+        sheet.show()
     }
 
     override fun onDestroyView() {

@@ -181,6 +181,20 @@ class HistoryFragment : Fragment() {
             )
         }
 
+        b.btnDeleteSelected.setOnClickListener {
+            val count = vm.selectedIds.value.size
+            if (count == 0) return@setOnClickListener
+            AlertDialog.Builder(requireContext())
+                .setTitle(if (count == 1) "Aufnahme löschen?" else "$count Aufnahmen löschen?")
+                .setMessage("Die Auswahl wird in den Papierkorb verschoben und kann dort wiederhergestellt werden.")
+                .setPositiveButton("In Papierkorb") { _, _ ->
+                    vm.deleteSelected()
+                    Snackbar.make(b.root, "In Papierkorb verschoben", Snackbar.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Abbrechen", null)
+                .show()
+        }
+
         b.btnCancelSelection.setOnClickListener { vm.clearSelection() }
     }
 

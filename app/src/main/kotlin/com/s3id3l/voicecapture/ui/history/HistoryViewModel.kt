@@ -59,6 +59,15 @@ class HistoryViewModel(app: Application) : AndroidViewModel(app) {
         _selectedIds.update { it - rec.id }
     }
 
+    /** Soft-deletes all currently selected recordings (moves them to trash). */
+    fun deleteSelected() = viewModelScope.launch {
+        val ids = _selectedIds.value.toList()
+        if (ids.isEmpty()) return@launch
+        val now = System.currentTimeMillis()
+        ids.forEach { db.recordingDao().softDelete(it, now) }
+        clearSelection()
+    }
+
     fun restore(rec: RecordingEntity) = viewModelScope.launch {
         db.recordingDao().restore(rec.id)
     }

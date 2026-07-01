@@ -106,6 +106,11 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Deletes the entire AI-chat history for this recording. */
+    fun clearChat() = viewModelScope.launch {
+        db.chatMessageDao().deleteForRecording(_id.value)
+    }
+
     fun appendToRecording(text: String) = viewModelScope.launch {
         val rec = recording.value ?: return@launch
         val newOutput = if (rec.formattedOutput.isEmpty()) text else "${rec.formattedOutput}\n\n$text"

@@ -42,6 +42,7 @@ class RecordingActivity : AppCompatActivity() {
     private var isProcessing = false
     private var resumeId = -1L
     private var resumeParent: RecordingEntity? = null
+    private var sessionFormat: String? = null   // fixed format (e.g. transcription-only); null = user choice
 
     private val conn = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
@@ -83,6 +84,15 @@ class RecordingActivity : AppCompatActivity() {
         }
 
         setupFormatChips()
+
+        sessionFormat = intent.getStringExtra(EXTRA_FORMAT)
+        if (sessionFormat != null) {
+            // Fixed-format mode (e.g. transcription-only): no format picker needed.
+            b.formatSelectGroup.visibility = View.GONE
+            b.tvIdleHint.text = if (sessionFormat == PrefsManager.FORMAT_RAW)
+                "📝 Transkription — nur Rohtext\nTippe zum Aufnehmen"
+            else "Tippe zum Aufnehmen"
+        }
 
         resumeId = intent.getLongExtra(EXTRA_RESUME_ID, -1L)
         if (resumeId > 0) enterResumeMode(resumeId)
@@ -197,6 +207,7 @@ class RecordingActivity : AppCompatActivity() {
     }
 
     private fun processNewRecording(file: java.io.File, durationMs: Long) {
+        val fmt = sessionFormat ?: prefs.preferredFormat
         lifecycleScope.launch {
             val db = RecordingDatabase.getInstance(this@RecordingActivity)
             val id = db.recordingDao().insert(
@@ -204,7 +215,7 @@ class RecordingActivity : AppCompatActivity() {
                     audioPath  = file.absolutePath,
                     durationMs = durationMs,
                     status     = RecordingEntity.STATUS_PENDING,
-                    format     = prefs.preferredFormat,
+                    format     = fmt,
                     target     = prefs.preferredTarget
                 )
             )
@@ -217,7 +228,7 @@ class RecordingActivity : AppCompatActivity() {
                     .setInputData(Data.Builder()
                         .putLong(ProcessingWorker.KEY_RECORDING_ID, id)
                         .putString(ProcessingWorker.KEY_AUDIO_PATH, file.absolutePath)
-                        .putString(ProcessingWorker.KEY_FORMAT, prefs.preferredFormat)
+                        .putString(ProcessingWorker.KEY_FORMAT, fmt)
                         .putString(ProcessingWorker.KEY_TARGET, prefs.preferredTarget)
                         .build())
                     .build()
@@ -279,8 +290,9 @@ class RecordingActivity : AppCompatActivity() {
     }
 
     private fun showIdleState() {
-        // In resume mode the format picker stays hidden and the hint shows the continued session.
-        b.formatSelectGroup.visibility = if (resumeId > 0) View.GONE else View.VISIBLE
+        // Resume mode or fixed-format mode keep the format picker hidden.
+        b.formatSelectGroup.visibility =
+            if (resumeId > 0 || sessionFormat != null) View.GONE else View.VISIBLE
         b.tvIdleHint.visibility       = View.VISIBLE
         b.tvTimer.visibility          = View.GONE
         b.waveformView.visibility     = View.GONE
@@ -351,5 +363,7 @@ class RecordingActivity : AppCompatActivity() {
     companion object {
         /** When set, the recording is appended as a new segment to this existing recording id. */
         const val EXTRA_RESUME_ID = "resume_id"
+        /** When set, fixes the output format for this session (e.g. RAW = transcription only). */
+        const val EXTRA_FORMAT = "format"
     }
 }

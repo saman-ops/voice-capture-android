@@ -78,6 +78,7 @@ class DetailActivity : AppCompatActivity() {
             )
             finish()
         }
+        b.btnDeleteDetail.setOnClickListener { showDeleteDialog() }
 
         b.transcriptHeader.setOnClickListener {
             val visible = b.tvTranscript.visibility == View.VISIBLE
@@ -437,6 +438,22 @@ class DetailActivity : AppCompatActivity() {
                 vm.sendChat(text, selectedModel)
             }
 
+            cb.btnClearChat.setOnClickListener {
+                if (vm.chatMessages.value.isEmpty()) {
+                    Snackbar.make(b.root, "Kein Chat-Verlauf vorhanden", Snackbar.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                AlertDialog.Builder(this)
+                    .setTitle("Chat-Verlauf löschen?")
+                    .setMessage("Alle Nachrichten dieser Aufnahme werden entfernt.")
+                    .setPositiveButton("Löschen") { _, _ ->
+                        vm.clearChat()
+                        Snackbar.make(b.root, "Chat gelöscht", Snackbar.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Abbrechen", null)
+                    .show()
+            }
+
             sheet.show()
         }
     }
@@ -582,18 +599,22 @@ class DetailActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == com.s3id3l.voicecapture.R.id.action_delete) {
-            AlertDialog.Builder(this)
-                .setTitle("In Papierkorb verschieben?")
-                .setMessage("Die Aufnahme wird in den Papierkorb verschoben und kann dort wiederhergestellt werden.")
-                .setPositiveButton("In Papierkorb") { _, _ ->
-                    vm.delete()
-                    finish()
-                }
-                .setNegativeButton("Abbrechen", null)
-                .show()
+            showDeleteDialog()
             return true
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun showDeleteDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("In Papierkorb verschieben?")
+            .setMessage("Die Aufnahme wird in den Papierkorb verschoben und kann dort wiederhergestellt werden.")
+            .setPositiveButton("In Papierkorb") { _, _ ->
+                vm.delete()
+                finish()
+            }
+            .setNegativeButton("Abbrechen", null)
+            .show()
     }
 
     override fun onSupportNavigateUp(): Boolean {

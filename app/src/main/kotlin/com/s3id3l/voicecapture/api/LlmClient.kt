@@ -178,6 +178,9 @@ class LlmClient internal constructor(
     // ── Claude formatting (text → formatted text) ─────────────────────────────
 
     private fun formatWithClaude(transcript: String, format: String): String {
+        // Transcription-only: return the raw transcript, no LLM formatting call.
+        if (format == PrefsManager.FORMAT_RAW) return transcript.trim()
+
         val systemPrompt = formatSystemPrompt(format)
 
         val body = JSONObject().apply {
