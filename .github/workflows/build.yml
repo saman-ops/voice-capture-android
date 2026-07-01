@@ -76,6 +76,51 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
+      - name: Send APK to Telegram (manual builds)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          # Passed via env (never inline ${{ }} in run:) to avoid injection.
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT_ID: "621597017"
+          BUILD_NUM: ${{ github.run_number }}
+          BRANCH: ${{ github.ref_name }}
+          APK_PATH: app/build/outputs/apk/debug/app-debug.apk
+        run: |
+          set -euo pipefail
+
+          if [ -z "${TG_TOKEN:-}" ]; then
+            echo "::error::TELEGRAM_BOT_TOKEN secret is not set — cannot send APK."
+            exit 1
+          fi
+          if [ ! -f "$APK_PATH" ]; then
+            echo "::error::APK not found at $APK_PATH"
+            exit 1
+          fi
+
+          CAPTION="$(printf '📦 VoiceCapture Debug-APK\nBuild %s · Branch %s' "$BUILD_NUM" "$BRANCH")"
+
+          # Send the APK as a document; retry up to 3x and verify {"ok":true}.
+          ok="false"
+          for attempt in 1 2 3; do
+            RESP="$(curl -sS -m 180 -X POST \
+              "https://api.telegram.org/bot${TG_TOKEN}/sendDocument" \
+              -F chat_id="${TG_CHAT_ID}" \
+              -F caption="${CAPTION}" \
+              -F document=@"${APK_PATH}" || true)"
+            echo "Attempt ${attempt} response: $(printf '%s' "$RESP" | head -c 300)"
+            if printf '%s' "$RESP" | jq -e '.ok == true' >/dev/null 2>&1; then
+              ok="true"
+              break
+            fi
+            sleep $((attempt * 3))
+          done
+
+          if [ "$ok" != "true" ]; then
+            echo "::error::Telegram sendDocument failed after 3 attempts (see responses above)."
+            exit 1
+          fi
+          echo "APK sent to Telegram chat ${TG_CHAT_ID}."
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
