@@ -1,5 +1,6 @@
 package com.s3id3l.voicecapture.ui.detail
 
+import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -9,6 +10,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.activity.viewModels
@@ -79,6 +81,7 @@ class DetailActivity : AppCompatActivity() {
             finish()
         }
         b.btnDeleteDetail.setOnClickListener { showDeleteDialog() }
+        enableInnerScroll()
 
         b.transcriptHeader.setOnClickListener {
             val visible = b.tvTranscript.visibility == View.VISIBLE
@@ -108,6 +111,25 @@ class DetailActivity : AppCompatActivity() {
                 vm.saveTitle(b.titleEditable.text.toString())
             }
             false
+        }
+    }
+
+    /**
+     * The output preview has a capped height. Inside the page ScrollView, the parent would
+     * otherwise steal vertical drags, so let the box consume the gesture whenever its own
+     * content is taller than the preview (i.e. it can actually scroll).
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun enableInnerScroll() {
+        b.etOutput.setOnTouchListener { v, event ->
+            if (v.canScrollVertically(1) || v.canScrollVertically(-1)) {
+                v.parent?.requestDisallowInterceptTouchEvent(true)
+                if (event.actionMasked == MotionEvent.ACTION_UP ||
+                    event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                    v.parent?.requestDisallowInterceptTouchEvent(false)
+                }
+            }
+            false   // let the EditText handle the scroll/caret itself
         }
     }
 
